@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: nps-postgres
+    environment:
+      POSTGRES_DB: npsdiesel_dev
+      POSTGRES_USER: santiago
+      POSTGRES_PASSWORD: eJz7W0hn
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - nps-network
+
+  app:
+    build: .
+    container_name: nps-api
+    environment:
+      DATABASE_URL: postgresql://santiago:eJz7W0hn@postgres:5432/npsdiesel_dev?schema=public
+      PORT: 3000
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    networks:
+      - nps-network
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:
+
+networks:
+  nps-network:
+    driver: bridge

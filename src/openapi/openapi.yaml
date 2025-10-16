@@ -1,0 +1,18 @@
+openapi: 3.1.0
+info:
+  title: NPS Diesel API
+  description: API RESTful para e-commerce de repuestos para vehículos de carga
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+    description: Development server
+paths:
+  $ref: ./paths/ping.yaml
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    $ref: ./schemas/common.yaml

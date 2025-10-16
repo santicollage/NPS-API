@@ -1,0 +1,12 @@
+PingResponse:
+  type: object
+  properties:
+    status:
+      type: string
+      example: "ok"
+    env:
+      type: string
+      example: "development"
+  required:
+    - status
+    - env
