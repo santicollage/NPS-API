@@ -1,0 +1,83 @@
+Order:
+  type: object
+  properties:
+    order_id:
+      type: integer
+      example: 1
+    user_id:
+      type: integer
+      nullable: true
+      example: 1
+    total_amount:
+      type: number
+      format: float
+      example: 90000.00
+    shipping_cost:
+      type: number
+      format: float
+      example: 10000.00
+    status:
+      type: string
+      enum: ['pending', 'paid', 'shipped', 'delivered', 'cancelled']
+      example: 'pending'
+    created_at:
+      type: string
+      format: date-time
+      example: '2023-10-01T12:00:00Z'
+    items:
+      type: array
+      items:
+        $ref: '#/OrderItem'
+  required:
+    - order_id
+    - total_amount
+    - status
+    - created_at
+
+OrderItem:
+  type: object
+  properties:
+    order_item_id:
+      type: integer
+      example: 1
+    order_id:
+      type: integer
+      example: 1
+    product_id:
+      type: integer
+      example: 1
+    quantity:
+      type: integer
+      example: 2
+    unit_price:
+      type: number
+      format: float
+      example: 45000.00
+    subtotal:
+      type: number
+      format: float
+      example: 90000.00
+    product:
+      $ref: './product.yaml#/Product'
+  required:
+    - order_item_id
+    - order_id
+    - product_id
+    - quantity
+    - unit_price
+    - subtotal
+
+OrdersList:
+  type: array
+  items:
+    $ref: '#/Order'
+
+OrderStatusUpdate:
+  type: object
+  properties:
+    status:
+      type: string
+      enum: ['pending', 'paid', 'shipped', 'delivered', 'cancelled']
+      example: 'paid'
+  required:
+    - status

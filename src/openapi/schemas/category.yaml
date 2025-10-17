@@ -1,0 +1,43 @@
+Category:
+  type: object
+  properties:
+    category_id:
+      type: integer
+      example: 1
+    name:
+      type: string
+      example: 'Aceites y Lubricantes'
+    description:
+      type: string
+      example: 'Productos para el mantenimiento de motores diésel'
+  required:
+    - category_id
+    - name
+
+CategoryCreate:
+  type: object
+  properties:
+    name:
+      type: string
+      example: 'Aceites y Lubricantes'
+    description:
+      type: string
+      example: 'Productos para el mantenimiento de motores diésel'
+  required:
+    - name
+
+CategoryUpdate:
+  type: object
+  properties:
+    name:
+      type: string
+      example: 'Aceites y Lubricantes Actualizados'
+    description:
+      type: string
+      example: 'Descripción actualizada'
+  # No required fields for update
+
+CategoriesList:
+  type: array
+  items:
+    $ref: '#/Category'

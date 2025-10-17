@@ -1,0 +1,112 @@
+Product:
+  type: object
+  properties:
+    product_id:
+      type: integer
+      example: 1
+    category_id:
+      type: integer
+      example: 1
+    name:
+      type: string
+      example: 'Aceite Diésel 15W40'
+    description:
+      type: string
+      example: 'Aceite mineral para motores diésel de alto rendimiento'
+    price:
+      type: number
+      format: float
+      example: 45000.00
+    size:
+      type: string
+      enum: ['small', 'medium', 'large']
+      example: 'medium'
+    stock_quantity:
+      type: integer
+      example: 100
+    image_url:
+      type: string
+      format: uri
+      example: 'https://example.com/images/aceite-15w40.jpg'
+    created_at:
+      type: string
+      format: date-time
+      example: '2023-10-01T12:00:00Z'
+    category:
+      $ref: './category.yaml#/Category'
+  required:
+    - product_id
+    - category_id
+    - name
+    - price
+    - size
+    - stock_quantity
+    - created_at
+
+ProductCreate:
+  type: object
+  properties:
+    category_id:
+      type: integer
+      example: 1
+    name:
+      type: string
+      example: 'Aceite Diésel 15W40'
+    description:
+      type: string
+      example: 'Aceite mineral para motores diésel de alto rendimiento'
+    price:
+      type: number
+      format: float
+      example: 45000.00
+    size:
+      type: string
+      enum: ['small', 'medium', 'large']
+      example: 'medium'
+    stock_quantity:
+      type: integer
+      example: 100
+    image_url:
+      type: string
+      format: uri
+      example: 'https://example.com/images/aceite-15w40.jpg'
+  required:
+    - category_id
+    - name
+    - price
+    - size
+    - stock_quantity
+
+ProductUpdate:
+  type: object
+  properties:
+    category_id:
+      type: integer
+      example: 2
+    name:
+      type: string
+      example: 'Aceite Diésel 15W40 Premium'
+    description:
+      type: string
+      example: 'Descripción actualizada'
+    price:
+      type: number
+      format: float
+      example: 50000.00
+    size:
+      type: string
+      enum: ['small', 'medium', 'large']
+      example: 'large'
+    stock_quantity:
+      type: integer
+      example: 150
+    image_url:
+      type: string
+      format: uri
+      example: 'https://example.com/images/aceite-premium.jpg'
+  # No required fields for update
+
+ProductsList:
+  type: array
+  items:
+    $ref: '#/Product'

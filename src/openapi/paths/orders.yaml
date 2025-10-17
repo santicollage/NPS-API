@@ -1,0 +1,59 @@
+post:
+  summary: Create order from cart
+  description: Create order from active cart. Generates order_items, removes stock_reservations and deducts definitive stock (stock_movements type "SALE_CONFIRMED").
+  tags:
+    - Orders
+  security:
+    - bearerAuth: []
+  responses:
+    '201':
+      description: Order created
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/order.yaml#/Order'
+    '400':
+      description: Bad request (empty cart or insufficient stock)
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+get:
+  summary: List user orders
+  description: List authenticated user's orders (or all if admin).
+  tags:
+    - Orders
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: status
+      in: query
+      schema:
+        type: string
+        enum: ['pending', 'paid', 'shipped', 'delivered', 'cancelled']
+      example: 'pending'
+    - name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+      example: 1
+    - name: limit
+      in: query
+      schema:
+        type: integer
+        default: 20
+      example: 20
+  responses:
+    '200':
+      description: List of orders
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/order.yaml#/OrdersList'
+    '403':
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

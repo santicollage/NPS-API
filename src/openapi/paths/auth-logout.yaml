@@ -1,0 +1,20 @@
+post:
+  summary: User logout
+  description: Logout and remove token from server side.
+  tags:
+    - Authentication
+  security:
+    - bearerAuth: []
+  responses:
+    '200':
+      description: Logout successful
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth.yaml#/LogoutResponse'
+    '401':
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

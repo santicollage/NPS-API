@@ -1,0 +1,44 @@
+LoginRequest:
+  type: object
+  properties:
+    email:
+      type: string
+      format: email
+      example: 'juan.perez@example.com'
+    password:
+      type: string
+      example: 'password123'
+  required:
+    - email
+    - password
+
+LoginResponse:
+  type: object
+  properties:
+    token:
+      type: string
+      example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+    user:
+      $ref: './user.yaml#/User'
+  required:
+    - token
+    - user
+
+GoogleAuthRequest:
+  type: object
+  properties:
+    token:
+      type: string
+      description: Google OAuth token
+      example: 'ya29.a0AfH6SMC...'
+  required:
+    - token
+
+LogoutResponse:
+  type: object
+  properties:
+    message:
+      type: string
+      example: 'Logged out successfully'
+  required:
+    - message

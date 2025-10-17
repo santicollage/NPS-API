@@ -1,0 +1,84 @@
+User:
+  type: object
+  properties:
+    user_id:
+      type: integer
+      example: 1
+    name:
+      type: string
+      example: 'Juan Pérez'
+    email:
+      type: string
+      format: email
+      example: 'juan.perez@example.com'
+    role:
+      type: string
+      enum: ['customer', 'admin']
+      example: 'customer'
+    created_at:
+      type: string
+      format: date-time
+      example: '2023-10-01T12:00:00Z'
+  required:
+    - user_id
+    - name
+    - email
+    - role
+    - created_at
+
+UserCreate:
+  type: object
+  properties:
+    name:
+      type: string
+      example: 'Juan Pérez'
+    email:
+      type: string
+      format: email
+      example: 'juan.perez@example.com'
+    password:
+      type: string
+      minLength: 8
+      example: 'password123'
+    role:
+      type: string
+      enum: ['customer', 'admin']
+      default: 'customer'
+      example: 'customer'
+  required:
+    - name
+    - email
+    - password
+
+UserUpdate:
+  type: object
+  properties:
+    name:
+      type: string
+      example: 'Juan Pérez Actualizado'
+    email:
+      type: string
+      format: email
+      example: 'juan.actualizado@example.com'
+    role:
+      type: string
+      enum: ['customer', 'admin']
+      example: 'admin'
+  # No required fields for update
+
+ErrorResponse:
+  type: object
+  properties:
+    error:
+      type: string
+      example: 'Invalid input'
+    message:
+      type: string
+      example: 'The provided email is already in use'
+    code:
+      type: integer
+      example: 400
+  required:
+    - error
+    - message
+    - code

@@ -1,0 +1,105 @@
+StockMovement:
+  type: object
+  properties:
+    movement_id:
+      type: integer
+      example: 1
+    product_id:
+      type: integer
+      example: 1
+    type:
+      type: string
+      enum: ['entry', 'exit']
+      example: 'entry'
+    quantity:
+      type: integer
+      example: 50
+    reason:
+      type: string
+      example: 'Compra de inventario'
+    created_at:
+      type: string
+      format: date-time
+      example: '2023-10-01T12:00:00Z'
+  required:
+    - movement_id
+    - product_id
+    - type
+    - quantity
+    - created_at
+
+StockMovementCreate:
+  type: object
+  properties:
+    product_id:
+      type: integer
+      example: 1
+    type:
+      type: string
+      enum: ['entry', 'exit']
+      example: 'entry'
+    quantity:
+      type: integer
+      minimum: 1
+      example: 50
+    reason:
+      type: string
+      example: 'Compra de inventario'
+  required:
+    - product_id
+    - type
+    - quantity
+
+StockMovementsList:
+  type: array
+  items:
+    $ref: '#/StockMovement'
+
+StockReservation:
+  type: object
+  properties:
+    reservation_id:
+      type: integer
+      example: 1
+    cart_id:
+      type: integer
+      example: 1
+    product_id:
+      type: integer
+      example: 1
+    quantity:
+      type: integer
+      example: 2
+    expires_at:
+      type: string
+      format: date-time
+      example: '2023-10-01T13:00:00Z'
+    created_at:
+      type: string
+      format: date-time
+      example: '2023-10-01T12:00:00Z'
+  required:
+    - reservation_id
+    - cart_id
+    - product_id
+    - quantity
+    - expires_at
+    - created_at
+
+StockReservationsList:
+  type: array
+  items:
+    $ref: '#/StockReservation'
+
+CleanupResponse:
+  type: object
+  properties:
+    message:
+      type: string
+      example: 'Cleanup completed successfully'
+    cleaned_reservations:
+      type: integer
+      example: 5
+  required:
+    - message
+    - cleaned_reservations

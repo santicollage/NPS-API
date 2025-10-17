@@ -1,0 +1,114 @@
+Payment:
+  type: object
+  properties:
+    payment_id:
+      type: integer
+      example: 1
+    order_id:
+      type: integer
+      nullable: true
+      example: 1
+    wompi_transaction_id:
+      type: string
+      example: 'txn_123456789'
+    amount:
+      type: number
+      format: float
+      example: 90000.00
+    currency:
+      type: string
+      example: 'COP'
+    status:
+      type: string
+      enum: ['pending', 'approved', 'declined', 'error']
+      example: 'pending'
+    method:
+      type: string
+      example: 'credit_card'
+    created_at:
+      type: string
+      format: date-time
+      example: '2023-10-01T12:00:00Z'
+  required:
+    - payment_id
+    - amount
+    - currency
+    - status
+    - created_at
+
+PaymentCreateRequest:
+  type: object
+  properties:
+    order_id:
+      type: integer
+      example: 1
+    amount:
+      type: number
+      format: float
+      example: 90000.00
+    currency:
+      type: string
+      default: 'COP'
+      example: 'COP'
+  required:
+    - order_id
+    - amount
+
+PaymentCreateResponse:
+  type: object
+  properties:
+    payment_id:
+      type: integer
+      example: 1
+    wompi_checkout_url:
+      type: string
+      format: uri
+      example: 'https://checkout.wompi.co/purchase/123456'
+    status:
+      type: string
+      example: 'pending'
+  required:
+    - payment_id
+    - wompi_checkout_url
+    - status
+
+WebhookPayload:
+  type: object
+  properties:
+    event:
+      type: string
+      example: 'transaction.updated'
+    data:
+      type: object
+      properties:
+        transaction:
+          type: object
+          properties:
+            id:
+              type: string
+              example: 'txn_123456789'
+            status:
+              type: string
+              enum: ['APPROVED', 'DECLINED', 'ERROR', 'VOIDED']
+              example: 'APPROVED'
+            amount_in_cents:
+              type: integer
+              example: 9000000
+            currency:
+              type: string
+              example: 'COP'
+            reference:
+              type: string
+              example: 'order_123'
+  required:
+    - event
+    - data
+
+WebhookResponse:
+  type: object
+  properties:
+    message:
+      type: string
+      example: 'Webhook processed successfully'
+  required:
+    - message

@@ -1,0 +1,85 @@
+patch:
+  summary: Update category
+  description: Edit category name or description (admin only).
+  tags:
+    - Categories
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: category_id
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 1
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/category.yaml#/CategoryUpdate'
+        example:
+          name: 'Aceites y Lubricantes Premium'
+          description: 'Descripción actualizada'
+  responses:
+    '200':
+      description: Category updated
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/category.yaml#/Category'
+    '400':
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '403':
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '404':
+      description: Category not found
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+delete:
+  summary: Delete category
+  description: Delete a category (admin only).
+  tags:
+    - Categories
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: category_id
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 1
+  responses:
+    '200':
+      description: Category deleted
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: 'Category deleted successfully'
+    '403':
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '404':
+      description: Category not found
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

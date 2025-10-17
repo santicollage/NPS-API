@@ -1,0 +1,33 @@
+get:
+  summary: Check payment status
+  description: Check payment status of an order.
+  tags:
+    - Payments
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: order_id
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 1
+  responses:
+    '200':
+      description: Payment status
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/payment.yaml#/Payment'
+    '403':
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '404':
+      description: Payment not found
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
