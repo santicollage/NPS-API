@@ -1,11 +1,26 @@
 openapi: 3.1.0
 info:
   title: NPS Diesel API
-  description: API RESTful para e-commerce de repuestos para vehículos de carga
+  description:
+    API RESTful para la plataforma de comercio electrónico de **NPS DIESEL S.A.S**.
+    Permite la gestión de usuarios, productos, pedidos, pagos e inventario,
+    con autenticación JWT y conexión a Wompi.
   version: 1.0.0
+  contact:
+    name: Equipo de Desarrollo NPS DIESEL
+    email: santiagourregolaya@gmail.com
+    url: https://npsdiesel.com
+
 servers:
-  - url: http://localhost:3000
-    description: Development server
+  - url: https://api.npsdiesel.com/v1
+    description: Servidor de producción
+
+  - url: https://staging.npsdiesel.com/api/v1
+    description: Servidor de staging (preproducción)
+
+  - url: http://localhost:3000/api/v1
+    description: Servidor local de desarrollo
+
 paths:
   $ref: ./paths/ping.yaml
 components:
