@@ -5,11 +5,13 @@ services:
     image: postgres:15-alpine
     container_name: nps-postgres
     environment:
-      POSTGRES_DB: npsdiesel_dev
-      POSTGRES_USER: santiago
-      POSTGRES_PASSWORD: eJz7W0hn
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    env_file:
+      - .env.docker
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -19,11 +21,13 @@ services:
     build: .
     container_name: nps-api
     environment:
-      DATABASE_URL: postgresql://santiago:eJz7W0hn@postgres:5432/npsdiesel_dev?schema=public
-      PORT: 3000
-      NODE_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      PORT: ${PORT}
+      NODE_ENV: ${NODE_ENV}
+    env_file:
+      - .env.docker
     ports:
-      - "3000:3000"
+      - '3000:3000'
     depends_on:
       - postgres
     networks:
@@ -31,6 +35,19 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: nps-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@nps.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - '5050:80'
+    depends_on:
+      - postgres
+    networks:
+      - nps-network
 
 volumes:
   postgres_data:
