@@ -1,0 +1,111 @@
+get:
+  summary: Get product details
+  description: Show product details, including visible stock (real - reserved).
+  tags:
+    - Products
+  parameters:
+    - name: product_id
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 1
+  responses:
+    '200':
+      description: Product details
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/product.yaml#/Product'
+    '404':
+      description: Product not found
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+patch:
+  summary: Update product
+  description: Update product information (price, description, image, stock) (admin only).
+  tags:
+    - Products
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: product_id
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 1
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/product.yaml#/ProductUpdate'
+        example:
+          name: 'Aceite Diésel 15W40 Premium'
+          price: 50000.00
+          stock_quantity: 150
+  responses:
+    '200':
+      description: Product updated
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/product.yaml#/Product'
+    '400':
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '403':
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '404':
+      description: Product not found
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+delete:
+  summary: Delete product
+  description: Delete a product (admin only).
+  tags:
+    - Products
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: product_id
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 1
+  responses:
+    '200':
+      description: Product deleted
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: 'Product deleted successfully'
+    '403':
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '404':
+      description: Product not found
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

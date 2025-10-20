@@ -1,0 +1,126 @@
+/movements:
+  get:
+    summary: Get stock movements history
+    description: Return stock movements history (entries, exits, releases, sales).
+    tags:
+      - Stock
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: product_id
+        in: query
+        schema:
+          type: integer
+        example: 1
+      - name: type
+        in: query
+        schema:
+          type: string
+          enum: ['entry', 'exit']
+        example: 'entry'
+      - name: page
+        in: query
+        schema:
+          type: integer
+          default: 1
+        example: 1
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 50
+        example: 50
+    responses:
+      '200':
+        description: Stock movements
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/stock.yaml#/StockMovementsList'
+      '403':
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'
+  post:
+    summary: Create stock movement
+    description: Create manual stock movement (e.g., physical inventory entry).
+    tags:
+      - Stock
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/stock.yaml#/StockMovementCreate'
+          example:
+            product_id: 1
+            type: 'entry'
+            quantity: 50
+            reason: 'Compra de inventario físico'
+    responses:
+      '201':
+        description: Movement created
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/stock.yaml#/StockMovement'
+      '400':
+        description: Bad request
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'
+      '403':
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'
+
+/cleanup:
+  post:
+    summary: Cleanup expired reservations
+    description: Clean expired reservations (expires_at < NOW()) and register "RESERVATION_EXPIRED" movement.
+    tags:
+      - Stock
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: Cleanup completed
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/stock.yaml#/CleanupResponse'
+      '403':
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'
+
+/reservations:
+  get:
+    summary: List active reservations
+    description: List active reservations (admin or debugging only).
+    tags:
+      - Stock
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: Active reservations
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/stock.yaml#/StockReservationsList'
+      '403':
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'

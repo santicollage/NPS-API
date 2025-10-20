@@ -1,0 +1,26 @@
+post:
+  summary: Google OAuth login/register
+  description: Automatic login or register using Google OAuth (google_id).
+  tags:
+    - Authentication
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/auth.yaml#/GoogleAuthRequest'
+        example:
+          token: 'ya29.a0AfH6SMC...'
+  responses:
+    '200':
+      description: Authentication successful
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth.yaml#/LoginResponse'
+    '400':
+      description: Invalid token
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

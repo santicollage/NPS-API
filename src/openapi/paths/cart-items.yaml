@@ -1,0 +1,35 @@
+post:
+  summary: Add product to cart
+  description: Add product to cart. Creates/updates cart_items and generates automatic reservation in stock_reservations with expires_at.
+  tags:
+    - Cart
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/cart.yaml#/CartItemCreate'
+        example:
+          product_id: 1
+          quantity: 2
+  responses:
+    '201':
+      description: Item added to cart
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/cart.yaml#/CartItem'
+    '400':
+      description: Bad request (insufficient stock)
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '404':
+      description: Product not found
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

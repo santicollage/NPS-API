@@ -1,13 +1,79 @@
 openapi: 3.1.0
 info:
   title: NPS Diesel API
-  description: API RESTful para e-commerce de repuestos para vehículos de carga
+  description:
+    API RESTful para la plataforma de comercio electrónico de **NPS DIESEL S.A.S**.
+    Permite la gestión de usuarios, productos, pedidos, pagos e inventario,
+    con autenticación JWT y conexión a Wompi.
   version: 1.0.0
+  contact:
+    name: Equipo de Desarrollo NPS DIESEL
+    email: santiagourregolaya@gmail.com
+    url: https://npsdiesel.com
+
 servers:
-  - url: http://localhost:3000
-    description: Development server
+  - url: http://localhost:3000/api/v1
+    description: Servidor local de desarrollo
+
+  - url: https://staging.npsdiesel.com/api/v1
+    description: Servidor de staging (preproducción)
+
+  - url: https://api.npsdiesel.com/v1
+    description: Servidor de producción
+
 paths:
-  $ref: ./paths/ping.yaml
+  /ping:
+    $ref: './paths/ping.yaml'
+  /users/register:
+    $ref: './paths/users-register.yaml'
+  /users/{user_id}:
+    $ref: './paths/users-user_id.yaml'
+  /auth/login:
+    $ref: './paths/auth-login.yaml'
+  /auth/logout:
+    $ref: './paths/auth-logout.yaml'
+  /auth/me:
+    $ref: './paths/auth-me.yaml'
+  /auth/google:
+    $ref: './paths/auth-google.yaml'
+  /categories:
+    $ref: './paths/categories.yaml'
+  /categories/{category_id}:
+    $ref: './paths/categories-category_id.yaml'
+  /products:
+    $ref: './paths/products.yaml'
+  /products/{product_id}:
+    $ref: './paths/products-product_id.yaml'
+  /cart:
+    $ref: './paths/cart.yaml'
+  /cart/items:
+    $ref: './paths/cart-items.yaml'
+  /cart/items/{cart_item_id}:
+    $ref: './paths/cart-items-cart_item_id.yaml'
+  /cart/abandon:
+    $ref: './paths/cart-abandon.yaml'
+  /stock/movements:
+    $ref: './paths/stock-movements.yaml'
+  /stock/cleanup:
+    $ref: './paths/stock-cleanup.yaml'
+  /stock/reservations:
+    $ref: './paths/stock-reservations.yaml'
+  /orders:
+    $ref: './paths/orders.yaml'
+  /orders/{order_id}:
+    $ref: './paths/orders-order_id.yaml'
+  /orders/{order_id}/status:
+    $ref: './paths/orders-order_id-status.yaml'
+  /payments/create:
+    $ref: './paths/payments-create.yaml'
+  /payments/webhook:
+    $ref: './paths/payments-webhook.yaml'
+  /payments/{order_id}:
+    $ref: './paths/payments-order_id.yaml'
+  /jobs/cleanup-reservations:
+    $ref: './paths/jobs-cleanup-reservations.yaml'
+  /jobs/health:
+    $ref: './paths/jobs-health.yaml'
 components:
   securitySchemes:
     bearerAuth:
@@ -15,4 +81,77 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
-    $ref: ./schemas/common.yaml
+    PingResponse:
+      $ref: './schemas/common.yaml#/PingResponse'
+    User:
+      $ref: './schemas/user.yaml#/User'
+    UserCreate:
+      $ref: './schemas/user.yaml#/UserCreate'
+    UserUpdate:
+      $ref: './schemas/user.yaml#/UserUpdate'
+    ErrorResponse:
+      $ref: './schemas/user.yaml#/ErrorResponse'
+    LoginRequest:
+      $ref: './schemas/auth.yaml#/LoginRequest'
+    LoginResponse:
+      $ref: './schemas/auth.yaml#/LoginResponse'
+    GoogleAuthRequest:
+      $ref: './schemas/auth.yaml#/GoogleAuthRequest'
+    LogoutResponse:
+      $ref: './schemas/auth.yaml#/LogoutResponse'
+    Category:
+      $ref: './schemas/category.yaml#/Category'
+    CategoryCreate:
+      $ref: './schemas/category.yaml#/CategoryCreate'
+    CategoryUpdate:
+      $ref: './schemas/category.yaml#/CategoryUpdate'
+    CategoriesList:
+      $ref: './schemas/category.yaml#/CategoriesList'
+    Product:
+      $ref: './schemas/product.yaml#/Product'
+    ProductCreate:
+      $ref: './schemas/product.yaml#/ProductCreate'
+    ProductUpdate:
+      $ref: './schemas/product.yaml#/ProductUpdate'
+    ProductsList:
+      $ref: './schemas/product.yaml#/ProductsList'
+    Cart:
+      $ref: './schemas/cart.yaml#/Cart'
+    CartItem:
+      $ref: './schemas/cart.yaml#/CartItem'
+    CartItemCreate:
+      $ref: './schemas/cart.yaml#/CartItemCreate'
+    CartItemUpdate:
+      $ref: './schemas/cart.yaml#/CartItemUpdate'
+    StockMovement:
+      $ref: './schemas/stock.yaml#/StockMovement'
+    StockMovementCreate:
+      $ref: './schemas/stock.yaml#/StockMovementCreate'
+    StockMovementsList:
+      $ref: './schemas/stock.yaml#/StockMovementsList'
+    StockReservation:
+      $ref: './schemas/stock.yaml#/StockReservation'
+    StockReservationsList:
+      $ref: './schemas/stock.yaml#/StockReservationsList'
+    CleanupResponse:
+      $ref: './schemas/stock.yaml#/CleanupResponse'
+    Order:
+      $ref: './schemas/order.yaml#/Order'
+    OrderItem:
+      $ref: './schemas/order.yaml#/OrderItem'
+    OrdersList:
+      $ref: './schemas/order.yaml#/OrdersList'
+    OrderStatusUpdate:
+      $ref: './schemas/order.yaml#/OrderStatusUpdate'
+    Payment:
+      $ref: './schemas/payment.yaml#/Payment'
+    PaymentCreateRequest:
+      $ref: './schemas/payment.yaml#/PaymentCreateRequest'
+    PaymentCreateResponse:
+      $ref: './schemas/payment.yaml#/PaymentCreateResponse'
+    WebhookPayload:
+      $ref: './schemas/payment.yaml#/WebhookPayload'
+    WebhookResponse:
+      $ref: './schemas/payment.yaml#/WebhookResponse'
+    HealthResponse:
+      $ref: './schemas/job.yaml#/HealthResponse'

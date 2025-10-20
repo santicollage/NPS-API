@@ -1,0 +1,36 @@
+post:
+  summary: Create payment transaction
+  description: Create transaction in Wompi, register in payments table with pending status.
+  tags:
+    - Payments
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/payment.yaml#/PaymentCreateRequest'
+        example:
+          order_id: 1
+          amount: 90000.00
+          currency: 'COP'
+  responses:
+    '201':
+      description: Payment created
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/payment.yaml#/PaymentCreateResponse'
+    '400':
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '404':
+      description: Order not found
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

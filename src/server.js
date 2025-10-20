@@ -1,49 +1,44 @@
-require('dotenv').config();
-const express = require('express');
-const swaggerUi = require('swagger-ui-express');
-const yaml = require('js-yaml');
-const fs = require('fs');
-const path = require('path');
-const $RefParser = require('json-refs');
+import 'dotenv/config';
+import app from './app.js';
 
-const app = express();
-
-// Middleware básico
-app.use(express.json());
-
-// Puerto configurable
 const PORT = process.env.PORT || 3000;
 
-// Endpoint de prueba
-app.get('/api/ping', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    env: process.env.NODE_ENV || 'development'
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📄 Documentation available at http://localhost:${PORT}/docs`);
+});
+
+server.on('error', (error) => {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  const bind = typeof PORT === 'string' ? 'Pipe ' + PORT : 'Port ' + PORT;
+
+  switch (error.code) {
+    case 'EACCES':
+      console.error(`${bind} requires elevated privileges`);
+      process.exit(1);
+    case 'EADDRINUSE':
+      console.error(`${bind} already in use`);
+      process.exit(1);
+    default:
+      throw error;
+  }
+});
+
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down server...');
+  server.close(() => {
+    console.log('Server closed.');
   });
 });
 
-// Swagger UI setup
-const openApiPath = path.join(__dirname, 'openapi', 'openapi.yaml');
-const openApiDocument = yaml.load(fs.readFileSync(openApiPath, 'utf8'));
-
-// Resolver referencias modulares
-$RefParser.resolveRefs(openApiDocument, {
-  location: openApiPath,
-  loaderOptions: {
-    processContent: (res, callback) => {
-      callback(null, yaml.load(res.text));
-    }
-  }
-}).then((resolvedSpec) => {
-  app.use('/docs', swaggerUi.serve, swaggerUi.setup(resolvedSpec.resolved));
-}).catch((err) => {
-  console.error('Error al resolver referencias OpenAPI:', err);
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down server...');
+  server.close(() => {
+    console.log('Server closed.');
+  });
 });
 
-// Iniciar servidor
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en puerto ${PORT}`);
-  console.log(`Documentación disponible en http://localhost:${PORT}/docs`);
-});
-
-module.exports = app;
+export default server;

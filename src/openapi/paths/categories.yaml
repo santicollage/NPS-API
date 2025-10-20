@@ -1,0 +1,47 @@
+get:
+  summary: List all categories
+  description: List all available categories.
+  tags:
+    - Categories
+  responses:
+    '200':
+      description: List of categories
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/category.yaml#/CategoriesList'
+post:
+  summary: Create new category
+  description: Create a new category (admin only).
+  tags:
+    - Categories
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/category.yaml#/CategoryCreate'
+        example:
+          name: 'Aceites y Lubricantes'
+          description: 'Productos para el mantenimiento de motores diésel'
+  responses:
+    '201':
+      description: Category created
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/category.yaml#/Category'
+    '400':
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '403':
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

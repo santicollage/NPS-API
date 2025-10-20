@@ -1,0 +1,75 @@
+get:
+  summary: List products
+  description: List all products. Allows filtering by category or name.
+  tags:
+    - Products
+  parameters:
+    - name: category_id
+      in: query
+      schema:
+        type: integer
+      example: 1
+    - name: name
+      in: query
+      schema:
+        type: string
+      example: 'aceite'
+    - name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+      example: 1
+    - name: limit
+      in: query
+      schema:
+        type: integer
+        default: 20
+      example: 20
+  responses:
+    '200':
+      description: List of products
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/product.yaml#/ProductsList'
+post:
+  summary: Create product
+  description: Create a new product (admin only).
+  tags:
+    - Products
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/product.yaml#/ProductCreate'
+        example:
+          category_id: 1
+          name: 'Aceite Diésel 15W40'
+          description: 'Aceite mineral para motores diésel de alto rendimiento'
+          price: 45000.00
+          size: 'medium'
+          stock_quantity: 100
+          image_url: 'https://example.com/images/aceite-15w40.jpg'
+  responses:
+    '201':
+      description: Product created
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/product.yaml#/Product'
+    '400':
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '403':
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

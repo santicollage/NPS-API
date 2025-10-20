@@ -1,0 +1,155 @@
+/users:
+  post:
+    summary: Register a new user
+    description: Register a new customer user in the database. Creates user_id, encrypts password.
+    tags:
+      - Users
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/UserCreate'
+          example:
+            name: 'Juan Pérez'
+            email: 'juan.perez@example.com'
+            password: 'password123'
+    responses:
+      '201':
+        description: User created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/User'
+      '400':
+        description: Bad request
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'
+      '409':
+        description: Email already exists
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'
+
+/users/{user_id}:
+  get:
+    summary: Get user details
+    description: Get the authenticated user's data or the specified user's data (admin only).
+    tags:
+      - Users
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        example: 1
+    responses:
+      '200':
+        description: User data
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/User'
+      '403':
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'
+      '404':
+        description: User not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'
+  patch:
+    summary: Update user information
+    description: Update the authenticated user's information or specified user's information (admin only).
+    tags:
+      - Users
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        example: 1
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/UserUpdate'
+          example:
+            name: 'Juan Pérez Actualizado'
+            email: 'juan.actualizado@example.com'
+    responses:
+      '200':
+        description: User updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/User'
+      '400':
+        description: Bad request
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'
+      '403':
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'
+      '404':
+        description: User not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'
+  delete:
+    summary: Delete user
+    description: Delete a user (admin only).
+    tags:
+      - Users
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        example: 1
+    responses:
+      '200':
+        description: User deleted successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: 'User deleted successfully'
+      '403':
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'
+      '404':
+        description: User not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'
