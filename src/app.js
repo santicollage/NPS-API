@@ -1,37 +1,23 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const cookieParser = require('cookie-parser');
-const rateLimit = require('express-rate-limit');
-const swaggerUi = require('swagger-ui-express');
-const fs = require('fs');
-const path = require('path');
-const RefParser = require('@apidevtools/json-schema-ref-parser');
-
-const apiRoutes = require('./routes');
+import 'dotenv/config';
+import express from 'express';
+import swaggerUi from 'swagger-ui-express';
+import OpenApiValidator from 'express-openapi-validator';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import RefParser from '@apidevtools/json-schema-ref-parser';
+import setupSecurity from './config/security.js';
+import apiRoutes from './routes/index.js';
 
 const app = express();
 
-app.use(helmet());
-app.use(cors());
-app.use(morgan('combined'));
-app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+setupSecurity(app);
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 min
-  max: 100, // limit of 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
-});
-app.use(limiter);
-
-app.use('/api', apiRoutes);
-
+// Routes and error handling are left inside the async to allow the documentation reading and validation to be loaded correctly
 (async () => {
   try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
     const openApiPath = path.resolve(__dirname, 'openapi', 'openapi.yaml');
 
     if (!fs.existsSync(openApiPath)) {
@@ -48,6 +34,18 @@ app.use('/api', apiRoutes);
     // Build Swagger UI with the documentation sorted
     app.use('/docs', swaggerUi.serve, swaggerUi.setup(resolvedSpec));
 
+    // OpenAPI Automatic Validation
+    app.use(
+      OpenApiValidator.middleware({
+        apiSpec: resolvedSpec,
+        validateRequests: true,
+        validateResponses: false,
+      })
+    );
+
+    // Routes
+    app.use('/api', apiRoutes);
+
     // Basic error handling middleware
     app.use((err, req, res, next) => {
       console.error(err.stack);
@@ -63,4 +61,4 @@ app.use('/api', apiRoutes);
   }
 })();
 
-module.exports = app;
+export default app;

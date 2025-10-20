@@ -1,5 +1,5 @@
-require('dotenv').config();
-const app = require('./app');
+import 'dotenv/config';
+import app from './app.js';
 
 const PORT = process.env.PORT || 3000;
 
@@ -17,10 +17,10 @@ server.on('error', (error) => {
 
   switch (error.code) {
     case 'EACCES':
-      console.error(`${bind} requiere privilegios elevados`);
+      console.error(`${bind} requires elevated privileges`);
       process.exit(1);
     case 'EADDRINUSE':
-      console.error(`${bind} ya está en uso`);
+      console.error(`${bind} already in use`);
       process.exit(1);
     default:
       throw error;
@@ -28,17 +28,17 @@ server.on('error', (error) => {
 });
 
 process.on('SIGTERM', () => {
-  console.log('SIGTERM recibido, cerrando servidor...');
+  console.log('SIGTERM received, shutting down server...');
   server.close(() => {
-    console.log('Servidor cerrado.');
+    console.log('Server closed.');
   });
 });
 
 process.on('SIGINT', () => {
-  console.log('SIGINT recibido, cerrando servidor...');
+  console.log('SIGINT received, shutting down server...');
   server.close(() => {
-    console.log('Servidor cerrado.');
+    console.log('Server closed.');
   });
 });
 
-module.exports = server;
+export default server;

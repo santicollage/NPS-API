@@ -1,12 +1,12 @@
-const express = require('express');
-const pingRoutes = require('./ping.routes');
+import express from 'express';
+import pingRoutes from './ping.routes.js';
 
 const router = express.Router();
 
-router.use('/ping', pingRoutes);
+router.use('/v1/ping', pingRoutes);
 
 // Aquí se pueden agregar más rutas en el futuro
 // router.use('/users', userRoutes);
 // router.use('/products', productRoutes);
 
-module.exports = router;
+export default router;

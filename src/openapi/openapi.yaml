@@ -12,14 +12,14 @@ info:
     url: https://npsdiesel.com
 
 servers:
-  - url: https://api.npsdiesel.com/v1
-    description: Servidor de producción
+  - url: http://localhost:3000/api/v1
+    description: Servidor local de desarrollo
 
   - url: https://staging.npsdiesel.com/api/v1
     description: Servidor de staging (preproducción)
 
-  - url: http://localhost:3000/api/v1
-    description: Servidor local de desarrollo
+  - url: https://api.npsdiesel.com/v1
+    description: Servidor de producción
 
 paths:
   /ping:
