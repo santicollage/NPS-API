@@ -6,12 +6,16 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import RefParser from '@apidevtools/json-schema-ref-parser';
+import compression from 'compression';
+import errorHandler from './middlewares/errorHandler.js';
 import setupSecurity from './config/security.js';
 import apiRoutes from './routes/index.js';
 
 const app = express();
 
 setupSecurity(app);
+
+app.use(compression());
 
 // Routes and error handling are left inside the async to allow the documentation reading and validation to be loaded correctly
 (async () => {
@@ -46,16 +50,12 @@ setupSecurity(app);
     // Routes
     app.use('/api', apiRoutes);
 
-    // Basic error handling middleware
-    app.use((err, req, res, next) => {
-      console.error(err.stack);
-      res.status(500).json({ error: 'Something went wrong!' });
-    });
-
     // Middleware for missing routes
     app.use((req, res) => {
       res.status(404).json({ error: 'Route not found' });
     });
+
+    app.use(errorHandler);
   } catch (error) {
     console.error('❌ Error resolving OpenAPI references:', error.message);
   }
