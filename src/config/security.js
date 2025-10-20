@@ -4,11 +4,10 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
+import { ENV } from './env.js';
 
 export default function setupSecurity(app) {
-  const allowedOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',')
-    : ['http://localhost:5173'];
+  const allowedOrigins = ENV.CORS_ORIGINS;
 
   app.use(
     helmet({
@@ -19,7 +18,7 @@ export default function setupSecurity(app) {
       referrerPolicy: { policy: 'no-referrer' },
       frameguard: { action: 'deny' },
       hsts:
-        process.env.NODE_ENV === 'production'
+        ENV.NODE_ENV === 'production'
           ? {
               maxAge: 31536000,
               includeSubDomains: true,
@@ -54,8 +53,8 @@ export default function setupSecurity(app) {
   });
   app.use(limiter);
 
-  app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
-  app.use(cookieParser(process.env.COOKIE_SECRET));
+  app.use(morgan(ENV.NODE_ENV === 'production' ? 'combined' : 'dev'));
+  app.use(cookieParser(ENV.COOKIE_SECRET));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 

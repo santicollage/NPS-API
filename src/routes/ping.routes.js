@@ -1,11 +1,12 @@
 import express from 'express';
+import { ENV } from '../config/env.js';
 
 const router = express.Router();
 
 router.get('/', (req, res) => {
   res.status(200).json({
     status: 'ok',
-    env: process.env.NODE_ENV || 'development',
+    env: ENV.NODE_ENV || 'development',
   });
 });
 

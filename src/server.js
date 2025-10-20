@@ -1,11 +1,13 @@
 import 'dotenv/config';
 import app from './app.js';
+import { ENV } from './config/env.js';
 
-const PORT = process.env.PORT || 3000;
+const PORT = ENV.PORT || 3000;
 
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📄 Documentation available at http://localhost:${PORT}/docs`);
+  console.log(`🚀 Server running on port ${ENV.PORT}`);
+  console.log(`🌍 Environment: ${ENV.NODE_ENV}`);
+  console.log(`📄 Docs: http://localhost:${ENV.PORT}/docs`);
 });
 
 server.on('error', (error) => {
