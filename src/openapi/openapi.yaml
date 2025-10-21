@@ -24,8 +24,8 @@ servers:
 paths:
   /ping:
     $ref: './paths/ping.yaml'
-  /users/register:
-    $ref: './paths/users-register.yaml'
+  /users:
+    $ref: './paths/users.yaml'
   /users/{user_id}:
     $ref: './paths/users-user_id.yaml'
   /auth/login:

@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl"]
 }
 
 datasource db {
@@ -16,8 +17,15 @@ model User {
   email         String   @unique
   password_hash String?
   google_id     String?
+  phone         String?
+  city          String?
+  department    String?
+  address_line  String?
+  postal_code   String?
+  image_url     String?
   role          UserRole @default(customer)
   created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
 
   carts  Cart[]
   orders Order[]

@@ -11,11 +11,37 @@ User:
       type: string
       format: email
       example: 'juan.perez@example.com'
+    google_id:
+      type: string
+      example: '123456789'
+    phone:
+      type: string
+      example: '+57 300 123 4567'
+    city:
+      type: string
+      example: 'Bogotá'
+    department:
+      type: string
+      example: 'Cundinamarca'
+    address_line:
+      type: string
+      example: 'Calle 123 #45-67'
+    postal_code:
+      type: string
+      example: '110111'
+    image_url:
+      type: string
+      format: uri
+      example: 'https://example.com/images/profile.jpg'
     role:
       type: string
       enum: ['customer', 'admin']
       example: 'customer'
     created_at:
+      type: string
+      format: date-time
+      example: '2023-10-01T12:00:00Z'
+    updated_at:
       type: string
       format: date-time
       example: '2023-10-01T12:00:00Z'
@@ -25,6 +51,7 @@ User:
     - email
     - role
     - created_at
+    - updated_at
 
 UserCreate:
   type: object
@@ -40,6 +67,25 @@ UserCreate:
       type: string
       minLength: 8
       example: 'password123'
+    phone:
+      type: string
+      example: '+57 300 123 4567'
+    city:
+      type: string
+      example: 'Bogotá'
+    department:
+      type: string
+      example: 'Cundinamarca'
+    address_line:
+      type: string
+      example: 'Calle 123 #45-67'
+    postal_code:
+      type: string
+      example: '110111'
+    image_url:
+      type: string
+      format: uri
+      example: 'https://example.com/images/profile.jpg'
     role:
       type: string
       enum: ['customer', 'admin']
@@ -60,6 +106,25 @@ UserUpdate:
       type: string
       format: email
       example: 'juan.actualizado@example.com'
+    phone:
+      type: string
+      example: '+57 300 123 4567'
+    city:
+      type: string
+      example: 'Bogotá'
+    department:
+      type: string
+      example: 'Cundinamarca'
+    address_line:
+      type: string
+      example: 'Calle 123 #45-67'
+    postal_code:
+      type: string
+      example: '110111'
+    image_url:
+      type: string
+      format: uri
+      example: 'https://example.com/images/profile.jpg'
     role:
       type: string
       enum: ['customer', 'admin']
