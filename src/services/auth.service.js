@@ -76,19 +76,31 @@ export const loginWithEmail = async (email, password) => {
 
 /**
  * Login/register with Google OAuth
- * @param {string} token - Google OAuth token
+ * @param {string} idToken - Google OAuth ID token
  * @returns {Promise<Object>} Object with token and user data
  */
-export const loginWithGoogle = async (token) => {
+export const loginWithGoogle = async (idToken) => {
   try {
-    // Verify Google token
+    // Verify Google ID token
     const ticket = await googleClient.verifyIdToken({
-      idToken: token,
+      idToken: idToken,
       audience: ENV.GOOGLE_CLIENT_ID,
     });
 
     const payload = ticket.getPayload();
-    const { sub: googleId, email, name, picture } = payload;
+
+    let { sub: googleId, email, name: userName, picture } = payload;
+
+    if (!userName) {
+      const givenName = payload.given_name || '';
+      const familyName = payload.family_name || '';
+      userName = `${givenName} ${familyName}`.trim();
+      if (!userName) {
+        userName = email.split('@')[0]; // Fallback to email prefix
+      }
+    }
+
+    const name = userName;
 
     // Find existing user by google_id or email
     let user = await prisma.user.findFirst({
