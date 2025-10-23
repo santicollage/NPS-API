@@ -14,9 +14,6 @@ import {
  */
 export const getUsers = async (req, res, next) => {
   try {
-    // TODO: Add authentication and authorization checks (admin only)
-    // For now, allow access to all users
-
     const result = await getAllUsers();
     res.status(200).json(result);
   } catch (error) {
@@ -58,9 +55,6 @@ export const getUser = async (req, res, next) => {
     const { user_id } = req.params;
     const userId = parseInt(user_id, 10);
 
-    // TODO: Add authentication and authorization checks
-    // For now, allow access to any user
-
     const user = await getUserById(userId);
     res.status(200).json(user);
   } catch (error) {
@@ -86,9 +80,6 @@ export const updateUserInfo = async (req, res, next) => {
     const { user_id } = req.params;
     const userId = parseInt(user_id, 10);
     const updateData = req.body;
-
-    // TODO: Add authentication and authorization checks
-    // For now, allow update to any user
 
     const user = await updateUser(userId, updateData);
     res.status(200).json(user);
@@ -121,9 +112,6 @@ export const deleteUserAccount = async (req, res, next) => {
   try {
     const { user_id } = req.params;
     const userId = parseInt(user_id, 10);
-
-    // TODO: Add authentication and authorization checks
-    // For now, allow delete to any user
 
     await deleteUser(userId);
     res.status(200).json({

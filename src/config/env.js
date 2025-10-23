@@ -26,6 +26,16 @@ export const ENV = {
   POSTGRES_DB: process.env.POSTGRES_DB,
   POSTGRES_USER: process.env.POSTGRES_USER,
   POSTGRES_PASSWORD: process.env.POSTGRES_PASSWORD,
+
+  // JWT
+  JWT_ACCESS_SECRET: required('JWT_ACCESS_SECRET'),
+  JWT_REFRESH_SECRET: required('JWT_REFRESH_SECRET'),
+  JWT_ACCESS_EXPIRES_IN: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
+  JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+
+  // Google OAuth
+  GOOGLE_CLIENT_ID: required('GOOGLE_CLIENT_ID'),
+  GOOGLE_CLIENT_SECRET: required('GOOGLE_CLIENT_SECRET'),
 };
 
 console.log('🤫 Environment variables loaded successfully.');

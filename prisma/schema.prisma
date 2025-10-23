@@ -12,20 +12,21 @@ datasource db {
 }
 
 model User {
-  user_id       Int      @id @default(autoincrement())
-  name          String
-  email         String   @unique
-  password_hash String?
-  google_id     String?
-  phone         String?
-  city          String?
-  department    String?
-  address_line  String?
-  postal_code   String?
-  image_url     String?
-  role          UserRole @default(customer)
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  user_id         Int      @id @default(autoincrement())
+  name            String
+  email           String   @unique
+  password_hash   String?
+  google_id       String?
+  phone           String?
+  city            String?
+  department      String?
+  address_line    String?
+  postal_code     String?
+  image_url       String?
+  role            UserRole @default(customer)
+  refresh_token   String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
 
   carts  Cart[]
   orders Order[]
