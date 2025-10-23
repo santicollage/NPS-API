@@ -1,6 +1,6 @@
 get:
   summary: List products
-  description: List all products. Allows filtering by category or name.
+  description: List all products. Allows filtering by category, name, price range and sorting.
   tags:
     - Products
   parameters:
@@ -9,23 +9,57 @@ get:
       schema:
         type: integer
       example: 1
+      description: Filter by category ID
     - name: name
       in: query
       schema:
         type: string
       example: 'aceite'
+      description: Filter by product name (partial match)
+    - name: min_price
+      in: query
+      schema:
+        type: number
+        format: float
+      example: 20000.00
+      description: Minimum price filter
+    - name: max_price
+      in: query
+      schema:
+        type: number
+        format: float
+      example: 100000.00
+      description: Maximum price filter
+    - name: sort_by
+      in: query
+      schema:
+        type: string
+        enum: ['price', 'stock_quantity', 'name', 'created_at']
+        default: 'created_at'
+      example: 'price'
+      description: Sort field
+    - name: sort_order
+      in: query
+      schema:
+        type: string
+        enum: ['asc', 'desc']
+        default: 'desc'
+      example: 'asc'
+      description: Sort order
     - name: page
       in: query
       schema:
         type: integer
         default: 1
       example: 1
+      description: Page number
     - name: limit
       in: query
       schema:
         type: integer
         default: 20
       example: 20
+      description: Items per page
   responses:
     '200':
       description: List of products
@@ -47,13 +81,14 @@ post:
         schema:
           $ref: '../schemas/product.yaml#/ProductCreate'
         example:
-          category_id: 1
+          category_ids: [1, 2]
           name: 'Aceite Diésel 15W40'
           description: 'Aceite mineral para motores diésel de alto rendimiento'
           price: 45000.00
           size: 'medium'
           stock_quantity: 100
           image_url: 'https://example.com/images/aceite-15w40.jpg'
+          reference: 'REF-001'
   responses:
     '201':
       description: Product created

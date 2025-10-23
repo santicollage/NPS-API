@@ -39,29 +39,44 @@ model Category {
   name        String
   description String?
 
-  products Product[]
+  productCategories ProductCategory[]
 
   @@map("categories")
 }
 
 model Product {
   product_id     Int         @id @default(autoincrement())
-  category_id    Int
   name           String
   description    String?
   price          Decimal     @db.Decimal(10, 2)
   size           ProductSize
   stock_quantity Int         @default(0)
   image_url      String?
+  reference      String?
+  visible        Boolean     @default(true)
+  active         Boolean     @default(true)
   created_at     DateTime    @default(now())
 
-  category          Category           @relation(fields: [category_id], references: [category_id])
+  productCategories ProductCategory[]
   cartItems         CartItem[]
   orderItems        OrderItem[]
   stockMovements    StockMovement[]
   stockReservations StockReservation[]
 
   @@map("products")
+}
+
+model ProductCategory {
+  product_category_id Int      @id @default(autoincrement())
+  product_id          Int
+  category_id         Int
+  created_at          DateTime @default(now())
+
+  product  Product  @relation(fields: [product_id], references: [product_id])
+  category Category @relation(fields: [category_id], references: [category_id])
+
+  @@unique([product_id, category_id])
+  @@map("product_categories")
 }
 
 model StockMovement {

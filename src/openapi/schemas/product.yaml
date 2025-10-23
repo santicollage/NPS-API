@@ -4,9 +4,6 @@ Product:
     product_id:
       type: integer
       example: 1
-    category_id:
-      type: integer
-      example: 1
     name:
       type: string
       example: 'Aceite Diésel 15W40'
@@ -28,27 +25,43 @@ Product:
       type: string
       format: uri
       example: 'https://example.com/images/aceite-15w40.jpg'
+    reference:
+      type: string
+      example: 'REF-001'
+    visible:
+      type: boolean
+      example: true
+    active:
+      type: boolean
+      example: true
     created_at:
       type: string
       format: date-time
       example: '2023-10-01T12:00:00Z'
-    category:
-      $ref: './category.yaml#/Category'
+    categories:
+      type: array
+      items:
+        $ref: './category.yaml#/Category'
   required:
     - product_id
-    - category_id
     - name
     - price
     - size
     - stock_quantity
     - created_at
+    - categories
+    - visible
+    - active
 
 ProductCreate:
   type: object
   properties:
-    category_id:
-      type: integer
-      example: 1
+    category_ids:
+      type: array
+      items:
+        type: integer
+      example: [1, 2]
+      description: Optional array of category IDs
     name:
       type: string
       example: 'Aceite Diésel 15W40'
@@ -70,8 +83,10 @@ ProductCreate:
       type: string
       format: uri
       example: 'https://example.com/images/aceite-15w40.jpg'
+    reference:
+      type: string
+      example: 'REF-001'
   required:
-    - category_id
     - name
     - price
     - size
@@ -80,9 +95,11 @@ ProductCreate:
 ProductUpdate:
   type: object
   properties:
-    category_id:
-      type: integer
-      example: 2
+    category_ids:
+      type: array
+      items:
+        type: integer
+      example: [1, 3]
     name:
       type: string
       example: 'Aceite Diésel 15W40 Premium'
@@ -104,6 +121,12 @@ ProductUpdate:
       type: string
       format: uri
       example: 'https://example.com/images/aceite-premium.jpg'
+    reference:
+      type: string
+      example: 'REF-001-UPDATED'
+    visible:
+      type: boolean
+      example: false
   # No required fields for update
 
 ProductsList:
