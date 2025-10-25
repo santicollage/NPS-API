@@ -17,6 +17,7 @@
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^14.2.1",
     "@prisma/client": "^5.0.0",
+    "axios": "^1.12.2",
     "bcryptjs": "^3.0.2",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",

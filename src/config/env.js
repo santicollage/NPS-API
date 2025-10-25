@@ -36,6 +36,13 @@ export const ENV = {
   // Google OAuth
   GOOGLE_CLIENT_ID: required('GOOGLE_CLIENT_ID'),
   GOOGLE_CLIENT_SECRET: required('GOOGLE_CLIENT_SECRET'),
+
+  // Wompi Payment Gateway
+  WOMPI_PUBLIC_KEY: required('WOMPI_PUBLIC_KEY'),
+  WOMPI_PRIVATE_KEY: required('WOMPI_PRIVATE_KEY'),
+
+  // Frontend URL (for payment redirects)
+  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:5173',
 };
 
 console.log('🤫 Environment variables loaded successfully.');
