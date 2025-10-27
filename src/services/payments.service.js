@@ -8,10 +8,11 @@ import { ENV } from '../config/env.js';
  * @param {number} paymentData.order_id - Order ID
  * @param {number} paymentData.amount - Amount in COP
  * @param {string} [paymentData.currency='COP'] - Currency
+ * @param {string} [paymentData.guest_id] - Guest ID (optional)
  * @returns {Promise<Object>} Payment creation response
  */
 export const createPayment = async (paymentData) => {
-  const { order_id, amount, currency = 'COP' } = paymentData;
+  const { order_id, amount, currency = 'COP', guest_id } = paymentData;
 
   // Get order details
   const order = await prisma.order.findUnique({
@@ -45,18 +46,30 @@ export const createPayment = async (paymentData) => {
     throw new Error('Payment amount does not match order total');
   }
 
+  // For guest orders, validate guest_id matches
+  if (!order.user_id && order.guest_id !== guest_id) {
+    throw new Error('Invalid guest access to order');
+  }
+
   // Get Wompi configuration from environment
   const wompiPublicKey = ENV.WOMPI_PUBLIC_KEY;
   const wompiPrivateKey = ENV.WOMPI_PRIVATE_KEY;
 
   // Create payment record with pending status
+  const paymentRecordData = {
+    order_id: parseInt(order_id, 10),
+    amount: parseFloat(amount),
+    currency,
+    status: 'pending',
+  };
+
+  // Add guest_id for guest orders
+  if (guest_id) {
+    paymentRecordData.guest_id = guest_id;
+  }
+
   const payment = await prisma.payment.create({
-    data: {
-      order_id: parseInt(order_id, 10),
-      amount: parseFloat(amount),
-      currency,
-      status: 'pending',
-    },
+    data: paymentRecordData,
   });
 
   try {
@@ -181,17 +194,24 @@ export const processWebhook = async (webhookData) => {
 /**
  * Get payment status for order
  * @param {number} orderId - Order ID
- * @param {number} userId - User ID (for authorization)
+ * @param {number} userId - User ID (for authorization, optional)
+ * @param {string} guestId - Guest ID (for authorization, optional)
  * @param {boolean} [isAdmin=false] - Whether user is admin
  * @returns {Promise<Object>} Payment object
  */
-export const getPaymentByOrderId = async (orderId, userId, isAdmin = false) => {
+export const getPaymentByOrderId = async (
+  orderId,
+  userId,
+  guestId,
+  isAdmin = false
+) => {
   const payment = await prisma.payment.findFirst({
     where: { order_id: parseInt(orderId, 10) },
     include: {
       order: {
         select: {
           user_id: true,
+          guest_id: true,
         },
       },
     },
@@ -202,8 +222,13 @@ export const getPaymentByOrderId = async (orderId, userId, isAdmin = false) => {
   }
 
   // Check authorization
-  if (!isAdmin && payment.order.user_id !== userId) {
-    throw new Error('Forbidden');
+  if (!isAdmin) {
+    const isOwner = userId
+      ? payment.order.user_id === userId
+      : payment.order.guest_id === guestId;
+    if (!isOwner) {
+      throw new Error('Forbidden');
+    }
   }
 
   return payment;

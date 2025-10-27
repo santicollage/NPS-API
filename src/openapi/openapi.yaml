@@ -4,7 +4,8 @@ info:
   description:
     API RESTful para la plataforma de comercio electrónico de **NPS DIESEL S.A.S**.
     Permite la gestión de usuarios, productos, pedidos, pagos e inventario,
-    con autenticación JWT y conexión a Wompi.
+    con autenticación JWT y conexión a Wompi. Soporta tanto usuarios registrados
+    como invitados (guest checkout) con reservas de stock automáticas.
   version: 1.0.0
   contact:
     name: Equipo de Desarrollo NPS DIESEL
@@ -44,6 +45,7 @@ paths:
     $ref: './paths/products.yaml'
   /products/{product_id}:
     $ref: './paths/products-product_id.yaml'
+  # Cart endpoints for authenticated users
   /cart:
     $ref: './paths/cart.yaml'
   /cart/items:
@@ -52,18 +54,35 @@ paths:
     $ref: './paths/cart-items-cart_item_id.yaml'
   /cart/abandon:
     $ref: './paths/cart-abandon.yaml'
+  # Cart endpoints for guest users (no authentication required)
+  /cart/guest:
+    $ref: './paths/cart-guest.yaml'
+  /cart/guest/{guest_id}:
+    $ref: './paths/cart-guest-guest_id.yaml'
+  /cart/guest/{guest_id}/items:
+    $ref: './paths/cart-guest-guest_id-items.yaml'
+  /cart/guest/{guest_id}/items/{cart_item_id}:
+    $ref: './paths/cart-guest-guest_id-items-cart_item_id.yaml'
+  /cart/guest/{guest_id}/abandon:
+    $ref: './paths/cart-guest-guest_id-abandon.yaml'
   /stock/movements:
     $ref: './paths/stock-movements.yaml'
   /stock/cleanup:
     $ref: './paths/stock-cleanup.yaml'
   /stock/reservations:
     $ref: './paths/stock-reservations.yaml'
+  # Order endpoints for authenticated users
   /orders:
     $ref: './paths/orders.yaml'
   /orders/{order_id}:
     $ref: './paths/orders-order_id.yaml'
   /orders/{order_id}/status:
     $ref: './paths/orders-order_id-status.yaml'
+  # Order endpoints for guest users (no authentication required)
+  /orders/guest:
+    $ref: './paths/orders-guest.yaml'
+  /orders/guest/{order_token}:
+    $ref: './paths/orders-guest-order_token.yaml'
   /payments/create:
     $ref: './paths/payments-create.yaml'
   /payments/webhook:
@@ -155,3 +174,7 @@ components:
       $ref: './schemas/payment.yaml#/WebhookResponse'
     HealthResponse:
       $ref: './schemas/job.yaml#/HealthResponse'
+    GuestCartCreate:
+      $ref: './schemas/guest.yaml#/GuestCartCreate'
+    GuestOrderCreate:
+      $ref: './schemas/guest.yaml#/GuestOrderCreate'

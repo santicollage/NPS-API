@@ -99,6 +99,7 @@ export const getPaymentStatus = async (req, res, next) => {
     const payment = await getPaymentByOrderId(
       parseInt(order_id, 10),
       userId,
+      null,
       userRole === 'admin'
     );
     res.status(200).json(payment);

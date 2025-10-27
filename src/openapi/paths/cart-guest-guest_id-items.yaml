@@ -1,0 +1,40 @@
+post:
+  summary: Add product to guest cart
+  description: Add product to guest cart. Creates/updates cart_items and generates automatic reservation in stock_reservations with expires_at.
+  tags:
+    - Cart
+  parameters:
+    - name: guest_id
+      in: path
+      required: true
+      schema:
+        type: string
+      example: '550e8400-e29b-41d4-a716-446655440000'
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/cart.yaml#/CartItemCreate'
+        example:
+          product_id: 1
+          quantity: 2
+  responses:
+    '201':
+      description: Item added to guest cart
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/cart.yaml#/CartItem'
+    '400':
+      description: Bad request (insufficient stock)
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '404':
+      description: Product not found
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

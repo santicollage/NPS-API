@@ -8,6 +8,11 @@ Payment:
       type: integer
       nullable: true
       example: 1
+    guest_id:
+      type: string
+      nullable: true
+      description: Guest identifier for guest payments
+      example: '550e8400-e29b-41d4-a716-446655440000'
     wompi_transaction_id:
       type: string
       example: 'txn_123456789'

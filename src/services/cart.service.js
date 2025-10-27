@@ -1,16 +1,22 @@
 import prisma from '../config/db.js';
 
 /**
- * Get or create active cart for user
- * @param {number} userId - User ID
+ * Get or create active cart for user or guest
+ * @param {number} userId - User ID (optional)
+ * @param {string} guestId - Guest ID (optional)
  * @returns {Promise<Object>} Cart with items
  */
-export const getOrCreateActiveCart = async (userId) => {
+export const getOrCreateActiveCart = async (userId, guestId) => {
+  if (!userId && !guestId) {
+    throw new Error('Either userId or guestId must be provided');
+  }
+
+  const whereCondition = userId
+    ? { user_id: userId, status: 'active' }
+    : { guest_id: guestId, status: 'active' };
+
   let cart = await prisma.cart.findFirst({
-    where: {
-      user_id: userId,
-      status: 'active',
-    },
+    where: whereCondition,
     include: {
       items: {
         include: {
@@ -21,11 +27,18 @@ export const getOrCreateActiveCart = async (userId) => {
   });
 
   if (!cart) {
+    const createData = {
+      status: 'active',
+    };
+
+    if (userId) {
+      createData.user_id = userId;
+    } else {
+      createData.guest_id = guestId;
+    }
+
     cart = await prisma.cart.create({
-      data: {
-        user_id: userId,
-        status: 'active',
-      },
+      data: createData,
       include: {
         items: {
           include: {
@@ -41,14 +54,15 @@ export const getOrCreateActiveCart = async (userId) => {
 
 /**
  * Add product to cart with stock reservation
- * @param {number} userId - User ID
+ * @param {number} userId - User ID (optional)
+ * @param {string} guestId - Guest ID (optional)
  * @param {number} productId - Product ID
  * @param {number} quantity - Quantity to add (can be negative to reduce)
  * @returns {Promise<Object>} Cart item
  */
-export const addItemToCart = async (userId, productId, quantity) => {
+export const addItemToCart = async (userId, guestId, productId, quantity) => {
   // Get or create active cart
-  const cart = await getOrCreateActiveCart(userId);
+  const cart = await getOrCreateActiveCart(userId, guestId);
 
   // Check if product exists and has sufficient stock
   const product = await prisma.product.findUnique({
@@ -123,6 +137,12 @@ export const addItemToCart = async (userId, productId, quantity) => {
       },
     });
 
+    // Update cart updated_at
+    await prisma.cart.update({
+      where: { cart_id: cart.cart_id },
+      data: { updated_at: new Date() },
+    });
+
     // Update cart item
     const updatedItem = await prisma.cartItem.update({
       where: { cart_item_id: existingItem.cart_item_id },
@@ -176,18 +196,25 @@ export const addItemToCart = async (userId, productId, quantity) => {
       },
     });
 
+    // Update cart updated_at
+    await prisma.cart.update({
+      where: { cart_id: cart.cart_id },
+      data: { updated_at: new Date() },
+    });
+
     return cartItem;
   }
 };
 
 /**
  * Update cart item quantity
- * @param {number} userId - User ID
+ * @param {number} userId - User ID (optional)
+ * @param {string} guestId - Guest ID (optional)
  * @param {number} cartItemId - Cart item ID
  * @param {number} quantity - New quantity
  * @returns {Promise<Object>} Updated cart item
  */
-export const updateCartItem = async (userId, cartItemId, quantity) => {
+export const updateCartItem = async (userId, guestId, cartItemId, quantity) => {
   // Get cart item with cart and product info
   const cartItem = await prisma.cartItem.findUnique({
     where: { cart_item_id: cartItemId },
@@ -212,11 +239,16 @@ export const updateCartItem = async (userId, cartItemId, quantity) => {
     },
   });
 
-  if (
-    !cartItem ||
-    cartItem.cart.user_id !== userId ||
-    cartItem.cart.status !== 'active'
-  ) {
+  if (!cartItem || cartItem.cart.status !== 'active') {
+    throw new Error('Cart item not found');
+  }
+
+  // Check ownership (user or guest)
+  const isOwner = userId
+    ? cartItem.cart.user_id === userId
+    : cartItem.cart.guest_id === guestId;
+
+  if (!isOwner) {
     throw new Error('Cart item not found');
   }
 
@@ -261,16 +293,23 @@ export const updateCartItem = async (userId, cartItemId, quantity) => {
     },
   });
 
+  // Update cart updated_at
+  await prisma.cart.update({
+    where: { cart_id: cartItem.cart.cart_id },
+    data: { updated_at: new Date() },
+  });
+
   return updatedItem;
 };
 
 /**
  * Remove item from cart and release reservation
- * @param {number} userId - User ID
+ * @param {number} userId - User ID (optional)
+ * @param {string} guestId - Guest ID (optional)
  * @param {number} cartItemId - Cart item ID
  * @returns {Promise<void>}
  */
-export const removeCartItem = async (userId, cartItemId) => {
+export const removeCartItem = async (userId, guestId, cartItemId) => {
   // Get cart item with cart info
   const cartItem = await prisma.cartItem.findUnique({
     where: { cart_item_id: cartItemId },
@@ -279,11 +318,16 @@ export const removeCartItem = async (userId, cartItemId) => {
     },
   });
 
-  if (
-    !cartItem ||
-    cartItem.cart.user_id !== userId ||
-    cartItem.cart.status !== 'active'
-  ) {
+  if (!cartItem || cartItem.cart.status !== 'active') {
+    throw new Error('Cart item not found');
+  }
+
+  // Check ownership (user or guest)
+  const isOwner = userId
+    ? cartItem.cart.user_id === userId
+    : cartItem.cart.guest_id === guestId;
+
+  if (!isOwner) {
     throw new Error('Cart item not found');
   }
 
@@ -303,15 +347,17 @@ export const removeCartItem = async (userId, cartItemId) => {
 
 /**
  * Mark cart as abandoned
- * @param {number} userId - User ID
+ * @param {number} userId - User ID (optional)
+ * @param {string} guestId - Guest ID (optional)
  * @returns {Promise<Object>} Updated cart
  */
-export const abandonCart = async (userId) => {
+export const abandonCart = async (userId, guestId) => {
+  const whereCondition = userId
+    ? { user_id: userId, status: 'active' }
+    : { guest_id: guestId, status: 'active' };
+
   const cart = await prisma.cart.findFirst({
-    where: {
-      user_id: userId,
-      status: 'active',
-    },
+    where: whereCondition,
   });
 
   if (!cart) {

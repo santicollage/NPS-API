@@ -2,16 +2,23 @@ import prisma from '../config/db.js';
 
 /**
  * Create order from active cart
- * @param {number} userId - User ID
+ * @param {number} userId - User ID (optional)
+ * @param {string} guestId - Guest ID (optional)
+ * @param {Object} customerData - Customer data for guest orders
  * @returns {Promise<Object>} Created order
  */
-export const createOrderFromCart = async (userId) => {
+export const createOrderFromCart = async (
+  userId,
+  guestId,
+  customerData = {}
+) => {
   // Get active cart with items
+  const whereCondition = userId
+    ? { user_id: userId, status: 'active' }
+    : { guest_id: guestId, status: 'active' };
+
   const cart = await prisma.cart.findFirst({
-    where: {
-      user_id: userId,
-      status: 'active',
-    },
+    where: whereCondition,
     include: {
       items: {
         include: {
@@ -81,18 +88,40 @@ export const createOrderFromCart = async (userId) => {
     });
   }
 
+  // Generate order token for guest orders
+  const orderToken = guestId ? crypto.randomUUID() : null;
+
   // Create order in transaction
   const result = await prisma.$transaction(async (tx) => {
     // Create order
-    const order = await tx.order.create({
-      data: {
-        user_id: userId,
-        total_amount: totalAmount,
-        status: 'pending',
-        items: {
-          create: orderItems,
-        },
+    const orderData = {
+      total_amount: totalAmount,
+      status: 'pending',
+      items: {
+        create: orderItems,
       },
+    };
+
+    if (userId) {
+      orderData.user_id = userId;
+    } else {
+      orderData.guest_id = guestId;
+      orderData.order_token = orderToken;
+      // Add customer data for guest orders
+      if (customerData) {
+        orderData.customer_name = customerData.customer_name;
+        orderData.customer_email = customerData.customer_email;
+        orderData.customer_phone = customerData.customer_phone;
+        orderData.customer_document = customerData.customer_document;
+        orderData.department = customerData.department;
+        orderData.city = customerData.city;
+        orderData.address_line = customerData.address_line;
+        orderData.postal_code = customerData.postal_code;
+      }
+    }
+
+    const order = await tx.order.create({
+      data: orderData,
       include: {
         items: {
           include: {
@@ -141,7 +170,10 @@ export const createOrderFromCart = async (userId) => {
 
     await Promise.all([...movementPromises, ...stockUpdatePromises]);
 
-    return order;
+    return {
+      ...order,
+      order_token: orderToken, // Include token in response for guest orders
+    };
   });
 
   return result;
@@ -203,11 +235,17 @@ export const getUserOrders = async (userId, filters = {}) => {
 /**
  * Get order by ID
  * @param {number} orderId - Order ID
- * @param {number} userId - User ID (for authorization)
+ * @param {number} userId - User ID (for authorization, optional)
+ * @param {string} orderToken - Order token (for guest orders, optional)
  * @param {boolean} [isAdmin=false] - Whether user is admin
  * @returns {Promise<Object>} Order object
  */
-export const getOrderById = async (orderId, userId, isAdmin = false) => {
+export const getOrderById = async (
+  orderId,
+  userId,
+  orderToken,
+  isAdmin = false
+) => {
   const order = await prisma.order.findUnique({
     where: { order_id: orderId },
     include: {
@@ -232,8 +270,38 @@ export const getOrderById = async (orderId, userId, isAdmin = false) => {
   }
 
   // Check authorization
-  if (!isAdmin && order.user_id !== userId) {
-    throw new Error('Forbidden');
+  if (!isAdmin) {
+    const isOwner = userId
+      ? order.user_id === userId
+      : order.order_token === orderToken;
+    if (!isOwner) {
+      throw new Error('Forbidden');
+    }
+  }
+
+  return order;
+};
+
+/**
+ * Get order by token (for guest orders)
+ * @param {string} orderToken - Order token
+ * @returns {Promise<Object>} Order object
+ */
+export const getOrderByToken = async (orderToken) => {
+  const order = await prisma.order.findFirst({
+    where: { order_token: orderToken },
+    include: {
+      items: {
+        include: {
+          product: true,
+        },
+      },
+      payments: true,
+    },
+  });
+
+  if (!order) {
+    throw new Error('Order not found');
   }
 
   return order;

@@ -4,6 +4,8 @@ import {
   getOrders,
   getOrder,
   updateOrderStatusController,
+  createGuestOrder,
+  getGuestOrder,
 } from '../controllers/orders.controller.js';
 import {
   authenticateToken,
@@ -12,6 +14,7 @@ import {
 
 const router = express.Router();
 
+// Authenticated user routes
 // POST /orders - Create order from cart
 router.post('/', authenticateToken, createOrder);
 
@@ -28,5 +31,12 @@ router.patch(
   authorizeRoles(['admin']),
   updateOrderStatusController
 );
+
+// Guest routes (no authentication required)
+// POST /orders/guest - Create guest order from cart
+router.post('/guest', createGuestOrder);
+
+// GET /orders/guest/:order_token - Get guest order by token
+router.get('/guest/:order_token', getGuestOrder);
 
 export default router;

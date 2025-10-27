@@ -8,6 +8,11 @@ Cart:
       type: integer
       nullable: true
       example: 1
+    guest_id:
+      type: string
+      nullable: true
+      description: Guest identifier for guest carts
+      example: '550e8400-e29b-41d4-a716-446655440000'
     status:
       type: string
       enum: ['active', 'ordered', 'abandoned']

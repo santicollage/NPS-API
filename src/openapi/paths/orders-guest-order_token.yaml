@@ -1,0 +1,25 @@
+get:
+  summary: Get guest order details
+  description: Get complete guest order details and products using order token (no authentication required).
+  tags:
+    - Orders
+  parameters:
+    - name: order_token
+      in: path
+      required: true
+      schema:
+        type: string
+      example: 'abc123-def456-ghi789'
+  responses:
+    '200':
+      description: Guest order details
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/order.yaml#/Order'
+    '404':
+      description: Order not found
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
