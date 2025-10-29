@@ -47,17 +47,12 @@ PaymentCreateRequest:
     order_id:
       type: integer
       example: 1
-    amount:
-      type: number
-      format: float
-      example: 90000.00
     currency:
       type: string
       default: 'COP'
       example: 'COP'
   required:
     - order_id
-    - amount
 
 PaymentCreateResponse:
   type: object

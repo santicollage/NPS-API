@@ -7,26 +7,16 @@ import { createStockMovement } from './stock.service.js';
  * Create payment transaction with Wompi
  * @param {Object} paymentData - Payment data
  * @param {number} paymentData.order_id - Order ID
- * @param {number} paymentData.amount - Amount in COP
  * @param {string} [paymentData.currency='COP'] - Currency
  * @param {string} [paymentData.guest_id] - Guest ID (optional)
  * @returns {Promise<Object>} Payment creation response
  */
 export const createPayment = async (paymentData) => {
-  const { order_id, amount, currency = 'COP', guest_id } = paymentData;
+  const { order_id, currency = 'COP', guest_id } = paymentData;
 
   // Get order details
   const order = await prisma.order.findUnique({
     where: { order_id: parseInt(order_id, 10) },
-    include: {
-      user: {
-        select: {
-          user_id: true,
-          name: true,
-          email: true,
-        },
-      },
-    },
   });
 
   if (!order) {
@@ -42,10 +32,8 @@ export const createPayment = async (paymentData) => {
     throw new Error('Order already has a payment');
   }
 
-  // Validate amount matches order total
-  if (parseFloat(amount) !== parseFloat(order.total_amount)) {
-    throw new Error('Payment amount does not match order total');
-  }
+  // Use order total as amount
+  const amount = order.total_amount;
 
   // For guest orders, validate guest_id matches
   if (!order.user_id && order.guest_id !== guest_id) {
@@ -74,13 +62,14 @@ export const createPayment = async (paymentData) => {
   });
 
   try {
-    // Create transaction in Wompi
+    // Create checkout in Wompi
     const wompiResponse = await axios.post(
-      'https://api.wompi.co/v1/transactions',
+      'https://api.wompi.co/v1/checkouts',
       {
         amount_in_cents: Math.round(parseFloat(amount) * 100), // Convert to cents
         currency,
-        customer_email: order.user.email,
+        customer_email: order.customer_email,
+        customer_name: order.customer_name,
         reference: `order_${order_id}_${Date.now()}`,
         redirect_url: `${ENV.FRONTEND_URL}/payment/success`,
         payment_method: {
@@ -96,7 +85,7 @@ export const createPayment = async (paymentData) => {
       }
     );
 
-    // Update payment with Wompi transaction ID and checkout URL
+    // Update payment with Wompi checkout ID
     const updatedPayment = await prisma.payment.update({
       where: { payment_id: payment.payment_id },
       data: {
@@ -106,8 +95,7 @@ export const createPayment = async (paymentData) => {
 
     return {
       payment_id: updatedPayment.payment_id,
-      wompi_checkout_url:
-        wompiResponse.data.data.payment_method.extra.checkout_url,
+      wompi_checkout_url: wompiResponse.data.data.url,
       status: updatedPayment.status,
     };
   } catch (error) {

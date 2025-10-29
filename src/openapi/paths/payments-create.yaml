@@ -13,7 +13,6 @@ post:
           $ref: '../schemas/payment.yaml#/PaymentCreateRequest'
         example:
           order_id: 1
-          amount: 90000.00
           currency: 'COP'
   responses:
     '201':
