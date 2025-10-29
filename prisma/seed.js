@@ -1,158 +1,143 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Iniciando seed de datos...');
+  console.log('🌱 Iniciando seed de datos de prueba...');
 
-  // --- Categorías ---
-  const categories = await prisma.category.createMany({
+  // Contraseñas visibles y sus hashes
+  const passwordAdmin = 'admin123';
+  const passwordCustomer = 'customer123';
+  const passwordGuest = 'guest123';
+
+  const hashedAdmin = await bcrypt.hash(passwordAdmin, 10);
+  const hashedCustomer = await bcrypt.hash(passwordCustomer, 10);
+  const hashedGuest = await bcrypt.hash(passwordGuest, 10);
+
+  // 🧍 Usuarios
+  await prisma.user.createMany({
     data: [
-      { name: 'Filtros', description: 'Filtros de aire, aceite y combustible' },
-      { name: 'Frenos', description: 'Pastillas, discos y kits de freno' },
       {
-        name: 'Suspensión',
-        description: 'Amortiguadores, resortes y componentes',
+        name: 'Admin User',
+        email: 'admin@npsdiesel.com',
+        password_hash: hashedAdmin,
+        role: 'admin',
       },
-      { name: 'Motor', description: 'Repuestos y componentes del motor' },
+      {
+        name: 'Carlos Pérez',
+        email: 'carlos@example.com',
+        password_hash: hashedCustomer,
+        role: 'customer',
+      },
+      {
+        name: 'Invitado Test',
+        email: 'guest@example.com',
+        password_hash: hashedGuest,
+        role: 'customer',
+      },
     ],
   });
-  console.log('✅ Categorías creadas');
 
-  // --- Productos ---
-  const products = await prisma.product.createMany({
+  // 🧭 Categorías
+  await prisma.category.createMany({
     data: [
       {
-        name: 'Filtro de aire Cummins',
-        description: 'Filtro de aire de alta eficiencia para motor Cummins.',
-        price: 85000,
+        name: 'Filtros',
+        description: 'Filtros de aire, aceite y combustible.',
+      },
+      {
+        name: 'Frenos',
+        description: 'Discos, pastillas y componentes de freno.',
+      },
+      { name: 'Motor', description: 'Componentes internos del motor.' },
+    ],
+  });
+
+  // 🧱 Productos
+  await prisma.product.createMany({
+    data: [
+      {
+        name: 'Filtro de Aire Mann',
+        description: 'Filtro de aire para motor Cummins ISX.',
+        price: 150000,
         size: 'medium',
         stock_quantity: 20,
-        image_url: 'https://via.placeholder.com/200x200.png?text=Filtro+Aire',
-        reference: 'FA-CUM-001',
+        active: true,
+        visible: true,
       },
       {
-        name: 'Pastillas de freno Bosch',
-        description: 'Juego de pastillas de freno de alto rendimiento Bosch.',
-        price: 120000,
-        size: 'small',
+        name: 'Disco de Freno Bosch',
+        description: 'Disco ventilado de alta resistencia.',
+        price: 320000,
+        size: 'medium',
         stock_quantity: 15,
-        image_url:
-          'https://via.placeholder.com/200x200.png?text=Pastillas+Bosch',
-        reference: 'PF-BOS-002',
+        active: true,
+        visible: true,
       },
       {
-        name: 'Amortiguador delantero Monroe',
-        description: 'Amortiguador de gas para vehículos de carga.',
-        price: 230000,
+        name: 'Biela Caterpillar',
+        description: 'Biela reforzada para motor CAT C15.',
+        price: 800000,
         size: 'large',
         stock_quantity: 10,
-        image_url: 'https://via.placeholder.com/200x200.png?text=Amortiguador',
-        reference: 'AM-MON-003',
+        active: true,
+        visible: true,
       },
     ],
   });
-  console.log('✅ Productos creados');
 
-  // --- Asociaciones Producto-Categoría ---
-  const [product1, product2, product3] = await prisma.product.findMany();
-  const [catFiltros, catFrenos, catSuspension] =
-    await prisma.category.findMany();
-
+  // 🔗 Relacionar productos con categorías
   await prisma.productCategory.createMany({
     data: [
-      { product_id: product1.product_id, category_id: catFiltros.category_id },
-      { product_id: product2.product_id, category_id: catFrenos.category_id },
-      {
-        product_id: product3.product_id,
-        category_id: catSuspension.category_id,
-      },
+      { product_id: 1, category_id: 1 },
+      { product_id: 2, category_id: 2 },
+      { product_id: 3, category_id: 3 },
     ],
   });
-  console.log('✅ Relaciones producto-categoría creadas');
 
-  // --- Usuario admin y usuario cliente ---
-  const admin = await prisma.user.create({
-    data: {
-      name: 'Administrador',
-      email: 'admin@npsdiesel.com',
-      password_hash: '$2b$10$123456789012345678901uMOPWk9k9KJKJJKJJK', // hash ficticio
-      role: 'admin',
-    },
-  });
-
-  const customer = await prisma.user.create({
-    data: {
-      name: 'Juan Pérez',
-      email: 'juanperez@example.com',
-      password_hash: '$2b$10$0987654321KJJJKJJKJJKJJKJKJJKJJKJKJJKJK',
-      phone: '3001234567',
-      city: 'Bogotá',
-      department: 'Cundinamarca',
-      address_line: 'Calle 123 #45-67',
-      postal_code: '110111',
-      role: 'customer',
-    },
-  });
-  console.log('✅ Usuarios creados');
-
-  // --- Carrito de prueba ---
+  // 🛒 Carrito de prueba
   const cart = await prisma.cart.create({
     data: {
-      user_id: customer.user_id,
+      user_id: 2, // cliente Carlos Pérez
       items: {
         create: [
-          { product_id: product1.product_id, quantity: 2 },
-          { product_id: product2.product_id, quantity: 1 },
+          { product_id: 1, quantity: 1 },
+          { product_id: 2, quantity: 1 },
         ],
       },
     },
+    include: { items: true },
   });
-  console.log('✅ Carrito con items creado');
 
-  // --- Pedido de prueba ---
+  // 📦 Orden de prueba
   const order = await prisma.order.create({
     data: {
-      user_id: customer.user_id,
-      total_amount: 290000,
-      shipping_cost: 15000,
-      status: 'paid',
+      user_id: 2,
+      total_amount: 470000,
+      status: 'pending',
       items: {
         create: [
-          {
-            product_id: product1.product_id,
-            quantity: 2,
-            unit_price: 85000,
-            subtotal: 170000,
-          },
-          {
-            product_id: product2.product_id,
-            quantity: 1,
-            unit_price: 120000,
-            subtotal: 120000,
-          },
+          { product_id: 1, quantity: 1, unit_price: 150000, subtotal: 150000 },
+          { product_id: 2, quantity: 1, unit_price: 320000, subtotal: 320000 },
         ],
       },
     },
+    include: { items: true },
   });
-  console.log('✅ Orden de prueba creada');
 
-  // --- Pago de prueba ---
-  await prisma.payment.create({
-    data: {
-      order_id: order.order_id,
-      amount: 305000,
-      status: 'approved',
-      method: 'Wompi',
-      wompi_transaction_id: 'TXN_TEST_001',
-    },
-  });
-  console.log('✅ Pago de prueba registrado');
-
-  console.log('🌿 Seed completado exitosamente.');
+  console.log('✅ Seed completado correctamente');
+  console.table([
+    { user: 'admin@npsdiesel.com', password: passwordAdmin },
+    { user: 'carlos@example.com', password: passwordCustomer },
+    { user: 'guest@example.com', password: passwordGuest },
+  ]);
 }
 
 main()
-  .then(async () => await prisma.$disconnect())
+  .then(async () => {
+    await prisma.$disconnect();
+  })
   .catch(async (e) => {
     console.error(e);
     await prisma.$disconnect();

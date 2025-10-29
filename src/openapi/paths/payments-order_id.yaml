@@ -3,8 +3,6 @@ get:
   description: Check payment status of an order.
   tags:
     - Payments
-  security:
-    - bearerAuth: []
   parameters:
     - name: order_id
       in: path

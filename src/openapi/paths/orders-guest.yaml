@@ -1,6 +1,6 @@
 post:
   summary: Create guest order from cart
-  description: Create order from guest cart. Generates order_items, removes stock_reservations and deducts definitive stock (stock_movements type "SALE_CONFIRMED"). Requires customer information.
+  description: Create order from guest cart. Generates order_items and creates stock_reservations for 24 hours. Stock is deducted only when payment is approved. Requires customer information.
   tags:
     - Orders
   requestBody:

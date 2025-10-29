@@ -9,7 +9,7 @@ import { authenticateToken } from '../middlewares/auth.middleware.js';
 const router = express.Router();
 
 // POST /payments/create - Create payment transaction
-router.post('/create', authenticateToken, createPaymentController);
+router.post('/create', createPaymentController);
 
 // POST /payments/webhook - Process payment webhook (no auth for webhooks)
 router.post('/webhook', processWebhookController);

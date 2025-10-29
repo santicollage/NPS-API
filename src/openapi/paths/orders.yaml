@@ -1,6 +1,46 @@
 post:
   summary: Create order from cart
-  description: Create order from active cart. Generates order_items, removes stock_reservations and deducts definitive stock (stock_movements type "SALE_CONFIRMED").
+  description: Create order from active cart. Generates order_items and creates stock_reservations for 24 hours. Stock is deducted only when payment is approved.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            customer_name:
+              type: string
+              example: 'Juan Pérez'
+            customer_email:
+              type: string
+              format: email
+              example: 'juan@example.com'
+            customer_phone:
+              type: string
+              example: '+57 300 123 4567'
+            customer_document:
+              type: string
+              example: '1234567890'
+            department:
+              type: string
+              example: 'Cundinamarca'
+            city:
+              type: string
+              example: 'Bogotá'
+            address_line:
+              type: string
+              example: 'Calle 123 #45-67'
+            postal_code:
+              type: string
+              example: '110111'
+          required:
+            - customer_name
+            - customer_email
+            - customer_phone
+            - customer_document
+            - department
+            - city
+            - address_line
   tags:
     - Orders
   security:

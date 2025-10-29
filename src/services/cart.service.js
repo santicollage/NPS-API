@@ -110,32 +110,16 @@ export const addItemToCart = async (userId, guestId, productId, quantity) => {
       return null; // Item was removed
     }
 
-    // Calculate available stock (real stock - reserved stock + current reservation)
+    // Calculate available stock (considering reservations)
     const reservedQuantity = product.stockReservations.reduce(
       (total, reservation) => total + reservation.quantity,
       0
     );
-    const availableStock =
-      product.stock_quantity - reservedQuantity + existingItem.quantity;
+    const availableStock = product.stock_quantity - reservedQuantity;
 
     if (newQuantity > availableStock) {
       throw new Error('Insufficient stock');
     }
-
-    // Update reservation
-    await prisma.stockReservation.updateMany({
-      where: {
-        cart_id: cart.cart_id,
-        product_id: productId,
-        expires_at: {
-          gt: new Date(),
-        },
-      },
-      data: {
-        quantity: newQuantity,
-        expires_at: expiresAt,
-      },
-    });
 
     // Update cart updated_at
     await prisma.cart.update({
@@ -148,7 +132,6 @@ export const addItemToCart = async (userId, guestId, productId, quantity) => {
       where: { cart_item_id: existingItem.cart_item_id },
       data: {
         quantity: newQuantity,
-        reserved_until: expiresAt,
       },
       include: {
         product: true,
@@ -162,7 +145,7 @@ export const addItemToCart = async (userId, guestId, productId, quantity) => {
       throw new Error('Quantity must be positive for new cart items');
     }
 
-    // Calculate available stock (real stock - reserved stock)
+    // Calculate available stock (considering reservations)
     const reservedQuantity = product.stockReservations.reduce(
       (total, reservation) => total + reservation.quantity,
       0
@@ -173,26 +156,15 @@ export const addItemToCart = async (userId, guestId, productId, quantity) => {
       throw new Error('Insufficient stock');
     }
 
-    // Create new cart item and reservation
+    // Create new cart item
     const cartItem = await prisma.cartItem.create({
       data: {
         cart_id: cart.cart_id,
         product_id: productId,
         quantity,
-        reserved_until: expiresAt,
       },
       include: {
         product: true,
-      },
-    });
-
-    // Create stock reservation
-    await prisma.stockReservation.create({
-      data: {
-        cart_id: cart.cart_id,
-        product_id: productId,
-        quantity,
-        expires_at: expiresAt,
       },
     });
 
@@ -252,44 +224,25 @@ export const updateCartItem = async (userId, guestId, cartItemId, quantity) => {
     throw new Error('Cart item not found');
   }
 
-  // Calculate available stock (excluding current reservation)
+  // Calculate available stock (considering reservations)
   const reservedQuantity = cartItem.product.stockReservations.reduce(
     (total, reservation) => total + reservation.quantity,
     0
   );
-  const availableStock =
-    cartItem.product.stock_quantity - reservedQuantity + cartItem.quantity;
+  const availableStock = cartItem.product.stock_quantity - reservedQuantity;
 
   if (quantity > availableStock) {
     throw new Error('Insufficient stock');
   }
-
-  const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes from now
 
   // Update cart item
   const updatedItem = await prisma.cartItem.update({
     where: { cart_item_id: cartItemId },
     data: {
       quantity,
-      reserved_until: expiresAt,
     },
     include: {
       product: true,
-    },
-  });
-
-  // Update reservation
-  await prisma.stockReservation.updateMany({
-    where: {
-      cart_id: cartItem.cart.cart_id,
-      product_id: cartItem.product_id,
-      expires_at: {
-        gt: new Date(),
-      },
-    },
-    data: {
-      quantity,
-      expires_at: expiresAt,
     },
   });
 
@@ -335,14 +288,6 @@ export const removeCartItem = async (userId, guestId, cartItemId) => {
   await prisma.cartItem.delete({
     where: { cart_item_id: cartItemId },
   });
-
-  // Delete associated reservation
-  await prisma.stockReservation.deleteMany({
-    where: {
-      cart_id: cartItem.cart.cart_id,
-      product_id: cartItem.product_id,
-    },
-  });
 };
 
 /**
@@ -368,13 +313,6 @@ export const abandonCart = async (userId, guestId) => {
   const updatedCart = await prisma.cart.update({
     where: { cart_id: cart.cart_id },
     data: { status: 'abandoned' },
-  });
-
-  // Delete associated reservations (they will be cleaned up by the cleanup job)
-  await prisma.stockReservation.deleteMany({
-    where: {
-      cart_id: cart.cart_id,
-    },
   });
 
   return updatedCart;

@@ -107,17 +107,18 @@ export const createOrderFromCart = async (
     } else {
       orderData.guest_id = guestId;
       orderData.order_token = orderToken;
-      // Add customer data for guest orders
-      if (customerData) {
-        orderData.customer_name = customerData.customer_name;
-        orderData.customer_email = customerData.customer_email;
-        orderData.customer_phone = customerData.customer_phone;
-        orderData.customer_document = customerData.customer_document;
-        orderData.department = customerData.department;
-        orderData.city = customerData.city;
-        orderData.address_line = customerData.address_line;
-        orderData.postal_code = customerData.postal_code;
-      }
+    }
+
+    // Add customer data
+    if (customerData) {
+      orderData.customer_name = customerData.customer_name ?? null;
+      orderData.customer_email = customerData.customer_email ?? null;
+      orderData.customer_phone = customerData.customer_phone ?? null;
+      orderData.customer_document = customerData.customer_document ?? null;
+      orderData.department = customerData.department ?? null;
+      orderData.city = customerData.city ?? null;
+      orderData.address_line = customerData.address_line ?? null;
+      orderData.postal_code = customerData.postal_code ?? null;
     }
 
     const order = await tx.order.create({
@@ -137,38 +138,19 @@ export const createOrderFromCart = async (
       data: { status: 'ordered' },
     });
 
-    // Delete reservations (they are no longer needed)
-    await tx.stockReservation.deleteMany({
-      where: {
-        cart_id: cart.cart_id,
-      },
-    });
-
-    // Create stock movements for sale confirmation
-    const movementPromises = orderItems.map((item) =>
-      tx.stockMovement.create({
+    // Create stock reservations for the order (will be confirmed on payment)
+    const reservationPromises = orderItems.map((item) =>
+      tx.stockReservation.create({
         data: {
+          cart_id: cart.cart_id,
           product_id: item.product_id,
-          type: 'exit',
           quantity: item.quantity,
-          reason: `SALE_CONFIRMED - Order ${order.order_id}`,
+          expires_at: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
         },
       })
     );
 
-    // Update product stock quantities
-    const stockUpdatePromises = orderItems.map((item) =>
-      tx.product.update({
-        where: { product_id: item.product_id },
-        data: {
-          stock_quantity: {
-            decrement: item.quantity,
-          },
-        },
-      })
-    );
-
-    await Promise.all([...movementPromises, ...stockUpdatePromises]);
+    await Promise.all(reservationPromises);
 
     return {
       ...order,

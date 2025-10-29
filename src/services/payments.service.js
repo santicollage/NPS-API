@@ -1,6 +1,7 @@
 import prisma from '../config/db.js';
 import axios from 'axios';
 import { ENV } from '../config/env.js';
+import { createStockMovement } from './stock.service.js';
 
 /**
  * Create payment transaction with Wompi
@@ -161,10 +162,12 @@ export const processWebhook = async (webhookData) => {
       break;
     case 'DECLINED':
       newStatus = 'declined';
+      orderStatusUpdate = 'cancelled';
       break;
     case 'ERROR':
     case 'VOIDED':
       newStatus = 'error';
+      orderStatusUpdate = 'cancelled';
       break;
     default:
       newStatus = 'pending';
@@ -178,13 +181,119 @@ export const processWebhook = async (webhookData) => {
     },
   });
 
-  // Update order status if payment was approved
+  // Update order status if payment was approved or failed
   if (orderStatusUpdate) {
-    await prisma.order.update({
-      where: { order_id: payment.order_id },
-      data: {
-        status: orderStatusUpdate,
-      },
+    // Use transaction to ensure consistency
+    await prisma.$transaction(async (tx) => {
+      // Update order status
+      await tx.order.update({
+        where: { order_id: payment.order_id },
+        data: {
+          status: orderStatusUpdate,
+        },
+      });
+
+      // Process stock deduction and movement for approved payments
+      if (status === 'APPROVED') {
+        // Get order items with product details
+        const orderItems = await tx.orderItem.findMany({
+          where: { order_id: payment.order_id },
+          include: {
+            product: {
+              select: {
+                product_id: true,
+                stock_quantity: true,
+              },
+            },
+          },
+        });
+
+        // Process each order item
+        for (const item of orderItems) {
+          const { product_id, quantity } = item;
+          const { stock_quantity } = item.product;
+
+          // Check if there's enough stock (should be reserved, but double-check)
+          if (quantity > stock_quantity) {
+            throw new Error(`Insufficient stock for product ${product_id}`);
+          }
+
+          // Decrement stock quantity
+          await tx.product.update({
+            where: { product_id },
+            data: {
+              stock_quantity: {
+                decrement: quantity,
+              },
+            },
+          });
+
+          // Create stock movement record
+          await tx.stockMovement.create({
+            data: {
+              product_id,
+              type: 'exit',
+              quantity,
+              reason: `ORDER_PAID_${payment.order_id}`,
+            },
+          });
+        }
+
+        // Delete any active reservations for this order's cart (if exists)
+        // Find the cart associated with the order (user or guest)
+        let cart = null;
+        if (payment.order.user_id) {
+          cart = await tx.cart.findFirst({
+            where: {
+              user_id: payment.order.user_id,
+              status: 'ordered', // Assuming cart is marked as ordered when order is created
+            },
+          });
+        } else if (payment.order.guest_id) {
+          cart = await tx.cart.findFirst({
+            where: {
+              guest_id: payment.order.guest_id,
+              status: 'ordered',
+            },
+          });
+        }
+
+        if (cart) {
+          await tx.stockReservation.deleteMany({
+            where: { cart_id: cart.cart_id },
+          });
+        }
+      } else if (
+        status === 'DECLINED' ||
+        status === 'ERROR' ||
+        status === 'VOIDED'
+      ) {
+        // For failed payments, clean up reservations to free up stock
+        // Find the cart associated with the order (user or guest)
+        let cart = null;
+        if (payment.order.user_id) {
+          cart = await tx.cart.findFirst({
+            where: {
+              user_id: payment.order.user_id,
+              status: 'ordered',
+            },
+          });
+        } else if (payment.order.guest_id) {
+          cart = await tx.cart.findFirst({
+            where: {
+              guest_id: payment.order.guest_id,
+              status: 'ordered',
+            },
+          });
+        }
+
+        if (cart) {
+          // Delete reservations (they don't count as movements, just free up the stock)
+          await tx.stockReservation.deleteMany({
+            where: { cart_id: cart.cart_id },
+          });
+        }
+      }
     });
   }
 

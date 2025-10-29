@@ -5,7 +5,8 @@ info:
     API RESTful para la plataforma de comercio electrónico de **NPS DIESEL S.A.S**.
     Permite la gestión de usuarios, productos, pedidos, pagos e inventario,
     con autenticación JWT y conexión a Wompi. Soporta tanto usuarios registrados
-    como invitados (guest checkout) con reservas de stock automáticas.
+    como invitados (guest checkout). Las reservas de stock se crean al confirmar
+    órdenes y se confirman o liberan según el resultado del pago.
   version: 1.0.0
   contact:
     name: Equipo de Desarrollo NPS DIESEL

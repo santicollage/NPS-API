@@ -1,6 +1,6 @@
 get:
   summary: List active reservations
-  description: List active reservations (admin or debugging only).
+  description: List active reservations created from confirmed orders (admin or debugging only).
   tags:
     - Stock
   security:

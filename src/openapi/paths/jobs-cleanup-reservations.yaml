@@ -1,6 +1,6 @@
 post:
   summary: Manual cleanup of reservations
-  description: Execute manual cleanup of expired reservations (if no cron external).
+  description: Execute manual cleanup of expired order reservations (if no cron external).
   tags:
     - Jobs
   security:
