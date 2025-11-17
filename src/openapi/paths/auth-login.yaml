@@ -1,6 +1,8 @@
 post:
   summary: User login
-  description: Login with email and password, generates JWT token.
+  description: |
+    Login with email and password, generates JWT access token and refresh token.
+    The refresh token is automatically set as an HttpOnly cookie named 'refresh_token'.
   tags:
     - Authentication
   requestBody:

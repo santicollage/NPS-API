@@ -1,6 +1,7 @@
 post:
   summary: User logout
-  description: Logout and remove token from server side.
+  description: |
+    Logout and remove refresh token from server side and clear the refresh_token cookie.
   tags:
     - Authentication
   security:

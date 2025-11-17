@@ -38,6 +38,8 @@ paths:
     $ref: './paths/auth-me.yaml'
   /auth/google:
     $ref: './paths/auth-google.yaml'
+  /auth/refresh:
+    $ref: './paths/auth-refresh.yaml'
   /categories:
     $ref: './paths/categories.yaml'
   /categories/{category_id}:
@@ -119,6 +121,8 @@ components:
       $ref: './schemas/auth.yaml#/GoogleAuthRequest'
     LogoutResponse:
       $ref: './schemas/auth.yaml#/LogoutResponse'
+    RefreshTokenResponse:
+      $ref: './schemas/auth.yaml#/RefreshTokenResponse'
     Category:
       $ref: './schemas/category.yaml#/Category'
     CategoryCreate:

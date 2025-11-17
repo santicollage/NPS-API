@@ -214,7 +214,9 @@ paths:
   /auth/login:
     post:
       summary: User login
-      description: 'Login with email and password, generates JWT token.'
+      description: |
+        Login with email and password, generates JWT access token and refresh token.
+        The refresh token is automatically set as an HttpOnly cookie named 'refresh_token'.
       tags:
         - Authentication
       requestBody:
@@ -242,7 +244,8 @@ paths:
   /auth/logout:
     post:
       summary: User logout
-      description: Logout and remove token from server side.
+      description: |
+        Logout and remove refresh token from server side and clear the refresh_token cookie.
       tags:
         - Authentication
       security:
@@ -284,7 +287,10 @@ paths:
   /auth/google:
     post:
       summary: Google OAuth login/register
-      description: Automatic login or register using Google OAuth (google_id).
+      description: |
+        Automatic login or register using Google OAuth (google_id).
+        Generates JWT access token and refresh token.
+        The refresh token is automatically set as an HttpOnly cookie named 'refresh_token'.
       tags:
         - Authentication
       requestBody:
@@ -304,6 +310,35 @@ paths:
                 $ref: '#/components/schemas/LoginResponse'
         '400':
           description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      description: |
+        Generate a new access token using the refresh token stored in an HttpOnly cookie.
+        The refresh token is automatically sent by the browser and does not need to be included in the request body.
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: New access token generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+              example:
+                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '400':
+          description: Refresh token is required (cookie not found)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid refresh token
           content:
             application/json:
               schema:
@@ -1740,12 +1775,16 @@ components:
       properties:
         token:
           type: string
+          description: JWT access token
           example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         user:
           $ref: '#/components/schemas/User'
       required:
         - token
         - user
+      description: |
+        The refresh token is sent as an HttpOnly cookie named 'refresh_token' and is not included in the response body.
+        This cookie is automatically sent by the browser on subsequent requests to /auth/refresh.
     GoogleAuthRequest:
       type: object
       properties:
@@ -1763,6 +1802,15 @@ components:
           example: Logged out successfully
       required:
         - message
+    RefreshTokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: New JWT access token
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      required:
+        - token
     Category:
       type: object
       properties:

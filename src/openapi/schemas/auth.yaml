@@ -17,12 +17,16 @@ LoginResponse:
   properties:
     token:
       type: string
+      description: JWT access token
       example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
     user:
       $ref: './user.yaml#/User'
   required:
     - token
     - user
+  description: |
+    The refresh token is sent as an HttpOnly cookie named 'refresh_token' and is not included in the response body.
+    This cookie is automatically sent by the browser on subsequent requests to /auth/refresh.
 
 GoogleAuthRequest:
   type: object
@@ -42,3 +46,13 @@ LogoutResponse:
       example: 'Logged out successfully'
   required:
     - message
+
+RefreshTokenResponse:
+  type: object
+  properties:
+    token:
+      type: string
+      description: New JWT access token
+      example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+  required:
+    - token

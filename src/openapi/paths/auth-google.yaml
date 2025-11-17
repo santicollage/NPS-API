@@ -1,6 +1,9 @@
 post:
   summary: Google OAuth login/register
-  description: Automatic login or register using Google OAuth (google_id).
+  description: |
+    Automatic login or register using Google OAuth (google_id).
+    Generates JWT access token and refresh token.
+    The refresh token is automatically set as an HttpOnly cookie named 'refresh_token'.
   tags:
     - Authentication
   requestBody:

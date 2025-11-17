@@ -1,7 +1,11 @@
 import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
 import prisma from '../config/db.js';
-import { generateAccessToken, generateRefreshToken } from '../utils/jwt.js';
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+} from '../utils/jwt.js';
 import { ENV } from '../config/env.js';
 
 const googleClient = new OAuth2Client(ENV.GOOGLE_CLIENT_ID);
