@@ -125,13 +125,17 @@ export const loginWithGoogle = async (idToken) => {
     });
 
     if (!user) {
-      // Create new user if doesn't exist
+      let imageUrl = picture;
+      if (imageUrl && imageUrl.includes('googleusercontent.com')) {
+        imageUrl = imageUrl.replace(/=s\d+(-c)?/g, '=s800$1');
+      }
+
       user = await prisma.user.create({
         data: {
           name,
           email,
           google_id: googleId,
-          image_url: picture,
+          image_url: imageUrl,
         },
         select: {
           user_id: true,
