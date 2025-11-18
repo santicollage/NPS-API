@@ -5,11 +5,18 @@ import { createStockMovement } from './stock.service.js';
 
 /**
  * Create payment transaction with Wompi
+ * This function does not require authentication and supports both authenticated users and guest users.
+ * For guest orders (orders without user_id), the guest_id parameter is required and must match the order's guest_id.
  * @param {Object} paymentData - Payment data
- * @param {number} paymentData.order_id - Order ID
- * @param {string} [paymentData.currency='COP'] - Currency
- * @param {string} [paymentData.guest_id] - Guest ID (optional)
- * @returns {Promise<Object>} Payment creation response
+ * @param {number} paymentData.order_id - Order ID to create payment for
+ * @param {string} [paymentData.currency='COP'] - Payment currency (defaults to COP)
+ * @param {string} [paymentData.guest_id] - Guest ID (required for guest orders, must match order's guest_id)
+ * @returns {Promise<Object>} Payment creation response with payment_id, wompi_checkout_url, and status
+ * @throws {Error} 'Order not found' - If the order does not exist
+ * @throws {Error} 'Order already has a payment' - If the order already has an associated payment
+ * @throws {Error} 'Invalid guest access to order' - If guest_id is provided but doesn't match the order's guest_id
+ * @throws {Error} 'Wompi configuration missing' - If Wompi credentials are not configured
+ * @throws {Error} 'Failed to create Wompi transaction' - If Wompi API call fails
  */
 export const createPayment = async (paymentData) => {
   const { order_id, currency = 'COP', guest_id } = paymentData;

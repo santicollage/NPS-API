@@ -46,11 +46,19 @@ PaymentCreateRequest:
   properties:
     order_id:
       type: integer
+      description: Order ID to create payment for
       example: 1
     currency:
       type: string
       default: 'COP'
+      description: Payment currency (defaults to COP)
       example: 'COP'
+    guest_id:
+      type: string
+      description: |
+        Guest identifier for guest orders. Required when creating payment for a guest order.
+        Must match the guest_id of the order to validate access.
+      example: '550e8400-e29b-41d4-a716-446655440000'
   required:
     - order_id
 

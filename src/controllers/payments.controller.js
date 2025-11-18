@@ -6,7 +6,13 @@ import {
 
 /**
  * Create payment transaction
+ * This endpoint does not require authentication and supports both authenticated users and guest users.
+ * For guest orders, the request body must include a `guest_id` that matches the order's guest_id.
  * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body
+ * @param {number} req.body.order_id - Order ID to create payment for
+ * @param {string} [req.body.currency='COP'] - Payment currency (defaults to COP)
+ * @param {string} [req.body.guest_id] - Guest ID (required for guest orders)
  * @param {Object} res - Express response object
  * @param {Function} next - Express next middleware function
  */
@@ -21,6 +27,14 @@ export const createPaymentController = async (req, res, next) => {
         error: {
           message: 'Order not found',
           status: 404,
+        },
+      });
+    }
+    if (error.message === 'Invalid guest access to order') {
+      return res.status(403).json({
+        error: {
+          message: 'Invalid guest access to order',
+          status: 403,
         },
       });
     }
