@@ -82,12 +82,14 @@ post:
           $ref: '../schemas/product.yaml#/ProductCreate'
         example:
           category_ids: [1, 2]
+          image_urls:
+            - 'https://example.com/images/aceite-15w40-1.jpg'
+            - 'https://example.com/images/aceite-15w40-2.jpg'
           name: 'Aceite Diésel 15W40'
           description: 'Aceite mineral para motores diésel de alto rendimiento'
           price: 45000.00
           size: 'medium'
           stock_quantity: 100
-          image_url: 'https://example.com/images/aceite-15w40.jpg'
           reference: 'REF-001'
   responses:
     '201':

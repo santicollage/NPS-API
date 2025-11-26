@@ -65,6 +65,14 @@ export const createNewProduct = async (req, res, next) => {
         },
       });
     }
+    if (error.message === 'image_urls must be an array') {
+      return res.status(400).json({
+        error: {
+          message: 'image_urls must be an array',
+          status: 400,
+        },
+      });
+    }
     if (error.message === 'One or more categories not found') {
       return res.status(400).json({
         error: {
@@ -138,6 +146,14 @@ export const updateProductInfo = async (req, res, next) => {
       return res.status(400).json({
         error: {
           message: 'category_ids must be an array',
+          status: 400,
+        },
+      });
+    }
+    if (error.message === 'image_urls must be an array') {
+      return res.status(400).json({
+        error: {
+          message: 'image_urls must be an array',
           status: 400,
         },
       });

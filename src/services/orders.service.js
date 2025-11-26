@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import prisma from '../config/db.js';
 
 /**
@@ -22,7 +23,18 @@ export const createOrderFromCart = async (
     include: {
       items: {
         include: {
-          product: true,
+          product: {
+            include: {
+              images: {
+                select: {
+                  image_url: true,
+                },
+                orderBy: {
+                  created_at: 'asc',
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -89,7 +101,7 @@ export const createOrderFromCart = async (
   }
 
   // Generate order token for guest orders
-  const orderToken = guestId ? crypto.randomUUID() : null;
+  const orderToken = guestId ? randomUUID() : null;
 
   // Create order in transaction
   const result = await prisma.$transaction(async (tx) => {
@@ -126,10 +138,33 @@ export const createOrderFromCart = async (
       include: {
         items: {
           include: {
-            product: true,
+            product: {
+              include: {
+                images: {
+                  select: {
+                    image_url: true,
+                  },
+                  orderBy: {
+                    created_at: 'asc',
+                  },
+                },
+              },
+            },
           },
         },
       },
+    });
+
+    // Transform order items to include images array
+    order.items = order.items.map((item) => {
+      const images = item.product.images?.map((img) => img.image_url) || [];
+      return {
+        ...item,
+        product: {
+          ...item.product,
+          images,
+        },
+      };
     });
 
     // Update cart status
@@ -191,7 +226,18 @@ export const getUserOrders = async (userId, filters = {}) => {
       include: {
         items: {
           include: {
-            product: true,
+            product: {
+              include: {
+                images: {
+                  select: {
+                    image_url: true,
+                  },
+                  orderBy: {
+                    created_at: 'asc',
+                  },
+                },
+              },
+            },
           },
         },
         payments: true,
@@ -203,8 +249,23 @@ export const getUserOrders = async (userId, filters = {}) => {
     prisma.order.count({ where }),
   ]);
 
+  // Transform orders to include images array in products
+  const transformedOrders = orders.map((order) => ({
+    ...order,
+    items: order.items.map((item) => {
+      const images = item.product.images?.map((img) => img.image_url) || [];
+      return {
+        ...item,
+        product: {
+          ...item.product,
+          images,
+        },
+      };
+    }),
+  }));
+
   return {
-    orders,
+    orders: transformedOrders,
     pagination: {
       page: parseInt(page, 10),
       limit: parseInt(limit, 10),
@@ -233,7 +294,18 @@ export const getOrderById = async (
     include: {
       items: {
         include: {
-          product: true,
+          product: {
+            include: {
+              images: {
+                select: {
+                  image_url: true,
+                },
+                orderBy: {
+                  created_at: 'asc',
+                },
+              },
+            },
+          },
         },
       },
       payments: true,
@@ -261,7 +333,22 @@ export const getOrderById = async (
     }
   }
 
-  return order;
+  // Transform order items to include images array
+  const transformedOrder = {
+    ...order,
+    items: order.items.map((item) => {
+      const images = item.product.images?.map((img) => img.image_url) || [];
+      return {
+        ...item,
+        product: {
+          ...item.product,
+          images,
+        },
+      };
+    }),
+  };
+
+  return transformedOrder;
 };
 
 /**
@@ -275,7 +362,18 @@ export const getOrderByToken = async (orderToken) => {
     include: {
       items: {
         include: {
-          product: true,
+          product: {
+            include: {
+              images: {
+                select: {
+                  image_url: true,
+                },
+                orderBy: {
+                  created_at: 'asc',
+                },
+              },
+            },
+          },
         },
       },
       payments: true,
@@ -286,7 +384,22 @@ export const getOrderByToken = async (orderToken) => {
     throw new Error('Order not found');
   }
 
-  return order;
+  // Transform order items to include images array
+  const transformedOrder = {
+    ...order,
+    items: order.items.map((item) => {
+      const images = item.product.images?.map((img) => img.image_url) || [];
+      return {
+        ...item,
+        product: {
+          ...item.product,
+          images,
+        },
+      };
+    }),
+  };
+
+  return transformedOrder;
 };
 
 /**
@@ -319,12 +432,38 @@ export const updateOrderStatus = async (orderId, status, isAdmin = false) => {
     include: {
       items: {
         include: {
-          product: true,
+          product: {
+            include: {
+              images: {
+                select: {
+                  image_url: true,
+                },
+                orderBy: {
+                  created_at: 'asc',
+                },
+              },
+            },
+          },
         },
       },
       payments: true,
     },
   });
 
-  return order;
+  // Transform order items to include images array
+  const transformedOrder = {
+    ...order,
+    items: order.items.map((item) => {
+      const images = item.product.images?.map((img) => img.image_url) || [];
+      return {
+        ...item,
+        product: {
+          ...item.product,
+          images,
+        },
+      };
+    }),
+  };
+
+  return transformedOrder;
 };

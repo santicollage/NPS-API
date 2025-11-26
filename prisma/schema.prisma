@@ -51,7 +51,6 @@ model Product {
   price          Decimal     @db.Decimal(10, 2)
   size           ProductSize
   stock_quantity Int         @default(0)
-  image_url      String?
   reference      String?
   visible        Boolean     @default(true)
   active         Boolean     @default(true)
@@ -62,6 +61,7 @@ model Product {
   orderItems        OrderItem[]
   stockMovements    StockMovement[]
   stockReservations StockReservation[]
+  images            ProductImage[]
 
   @@map("products")
 }
@@ -77,6 +77,17 @@ model ProductCategory {
 
   @@unique([product_id, category_id])
   @@map("product_categories")
+}
+
+model ProductImage {
+  product_image_id Int      @id @default(autoincrement())
+  product_id       Int
+  image_url        String
+  created_at       DateTime @default(now())
+
+  product Product @relation(fields: [product_id], references: [product_id], onDelete: Cascade)
+
+  @@map("product_images")
 }
 
 model StockMovement {

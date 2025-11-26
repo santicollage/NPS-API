@@ -20,7 +20,18 @@ export const getOrCreateActiveCart = async (userId, guestId) => {
     include: {
       items: {
         include: {
-          product: true,
+          product: {
+            include: {
+              images: {
+                select: {
+                  image_url: true,
+                },
+                orderBy: {
+                  created_at: 'asc',
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -42,10 +53,35 @@ export const getOrCreateActiveCart = async (userId, guestId) => {
       include: {
         items: {
           include: {
-            product: true,
+            product: {
+              include: {
+                images: {
+                  select: {
+                    image_url: true,
+                  },
+                  orderBy: {
+                    created_at: 'asc',
+                  },
+                },
+              },
+            },
           },
         },
       },
+    });
+  }
+
+  // Transform cart items to include images array
+  if (cart.items) {
+    cart.items = cart.items.map((item) => {
+      const images = item.product.images?.map((img) => img.image_url) || [];
+      return {
+        ...item,
+        product: {
+          ...item.product,
+          images,
+        },
+      };
     });
   }
 
@@ -134,11 +170,30 @@ export const addItemToCart = async (userId, guestId, productId, quantity) => {
         quantity: newQuantity,
       },
       include: {
-        product: true,
+        product: {
+          include: {
+            images: {
+              select: {
+                image_url: true,
+              },
+              orderBy: {
+                created_at: 'asc',
+              },
+            },
+          },
+        },
       },
     });
 
-    return updatedItem;
+    // Transform to include images array
+    const images = updatedItem.product.images?.map((img) => img.image_url) || [];
+    return {
+      ...updatedItem,
+      product: {
+        ...updatedItem.product,
+        images,
+      },
+    };
   } else {
     // Only allow positive quantities for new items
     if (quantity <= 0) {
@@ -164,7 +219,18 @@ export const addItemToCart = async (userId, guestId, productId, quantity) => {
         quantity,
       },
       include: {
-        product: true,
+        product: {
+          include: {
+            images: {
+              select: {
+                image_url: true,
+              },
+              orderBy: {
+                created_at: 'asc',
+              },
+            },
+          },
+        },
       },
     });
 
@@ -174,7 +240,15 @@ export const addItemToCart = async (userId, guestId, productId, quantity) => {
       data: { updated_at: new Date() },
     });
 
-    return cartItem;
+    // Transform to include images array
+    const images = cartItem.product.images?.map((img) => img.image_url) || [];
+    return {
+      ...cartItem,
+      product: {
+        ...cartItem.product,
+        images,
+      },
+    };
   }
 };
 
@@ -242,7 +316,18 @@ export const updateCartItem = async (userId, guestId, cartItemId, quantity) => {
       quantity,
     },
     include: {
-      product: true,
+      product: {
+        include: {
+          images: {
+            select: {
+              image_url: true,
+            },
+            orderBy: {
+              created_at: 'asc',
+            },
+          },
+        },
+      },
     },
   });
 
@@ -252,7 +337,15 @@ export const updateCartItem = async (userId, guestId, cartItemId, quantity) => {
     data: { updated_at: new Date() },
   });
 
-  return updatedItem;
+  // Transform to include images array
+  const images = updatedItem.product.images?.map((img) => img.image_url) || [];
+  return {
+    ...updatedItem,
+    product: {
+      ...updatedItem.product,
+      images,
+    },
+  };
 };
 
 /**

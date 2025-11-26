@@ -86,7 +86,6 @@ export const getAllProducts = async (filters = {}) => {
         price: true,
         size: true,
         stock_quantity: true,
-        image_url: true,
         reference: true,
         visible: true,
         active: true,
@@ -102,6 +101,16 @@ export const getAllProducts = async (filters = {}) => {
             },
           },
         },
+        images: {
+          select: {
+            product_image_id: true,
+            image_url: true,
+            created_at: true,
+          },
+          orderBy: {
+            created_at: 'asc',
+          },
+        },
       },
       orderBy,
       skip,
@@ -110,13 +119,15 @@ export const getAllProducts = async (filters = {}) => {
     prisma.product.count({ where }),
   ]);
 
-  // Transform products to include categories array
+  // Transform products to include categories and images arrays
   const transformedProducts = products.map((product) => {
     const categories = product.productCategories.map((pc) => pc.category);
-    const { productCategories, ...productWithoutCategories } = product;
+    const images = product.images.map((img) => img.image_url);
+    const { productCategories, images: productImages, ...productWithoutExtras } = product;
     return {
-      ...productWithoutCategories,
+      ...productWithoutExtras,
       categories,
+      images,
     };
   });
 
@@ -135,30 +146,35 @@ export const getAllProducts = async (filters = {}) => {
  * Create a new product
  * @param {Object} productData - Product data
  * @param {number[]} productData.category_ids - Array of category IDs
+ * @param {string[]} productData.image_urls - Array of image URLs
  * @param {string} productData.name - Product name
  * @param {string} [productData.description] - Product description
  * @param {number} productData.price - Product price
  * @param {string} productData.size - Product size (small|medium|large)
  * @param {number} productData.stock_quantity - Stock quantity
- * @param {string} [productData.image_url] - Product image URL
  * @param {string} [productData.reference] - Product reference
  * @returns {Promise<Object>} Created product
  */
 export const createProduct = async (productData) => {
   const {
     category_ids,
+    image_urls,
     name,
     description,
     price,
     size,
     stock_quantity,
-    image_url,
     reference,
   } = productData;
 
   // Validate category_ids is an array (if provided)
   if (category_ids !== undefined && !Array.isArray(category_ids)) {
     throw new Error('category_ids must be an array');
+  }
+
+  // Validate image_urls is an array (if provided)
+  if (image_urls !== undefined && !Array.isArray(image_urls)) {
+    throw new Error('image_urls must be an array');
   }
 
   // Check if all categories exist (if provided)
@@ -191,7 +207,6 @@ export const createProduct = async (productData) => {
     price: parseFloat(price),
     size,
     stock_quantity: parseInt(stock_quantity, 10),
-    image_url,
     reference,
   };
 
@@ -200,6 +215,15 @@ export const createProduct = async (productData) => {
     createData.productCategories = {
       create: category_ids.map((category_id) => ({
         category_id,
+      })),
+    };
+  }
+
+  // Only add images if provided
+  if (image_urls && image_urls.length > 0) {
+    createData.images = {
+      create: image_urls.map((image_url) => ({
+        image_url,
       })),
     };
   }
@@ -213,7 +237,6 @@ export const createProduct = async (productData) => {
       price: true,
       size: true,
       stock_quantity: true,
-      image_url: true,
       reference: true,
       visible: true,
       active: true,
@@ -229,17 +252,29 @@ export const createProduct = async (productData) => {
           },
         },
       },
+      images: {
+        select: {
+          product_image_id: true,
+          image_url: true,
+          created_at: true,
+        },
+        orderBy: {
+          created_at: 'asc',
+        },
+      },
     },
   });
 
-  // Transform the response to include categories array
+  // Transform the response to include categories and images arrays
   const categoriesArray =
     product.productCategories?.map((pc) => pc.category) || [];
-  const { productCategories, ...productWithoutCategories } = product;
+  const imagesArray = product.images?.map((img) => img.image_url) || [];
+  const { productCategories, images: productImages, ...productWithoutExtras } = product;
 
   return {
-    ...productWithoutCategories,
+    ...productWithoutExtras,
     categories: categoriesArray,
+    images: imagesArray,
   };
 };
 
@@ -258,7 +293,6 @@ export const getProductById = async (productId) => {
       price: true,
       size: true,
       stock_quantity: true,
-      image_url: true,
       reference: true,
       visible: true,
       active: true,
@@ -272,6 +306,16 @@ export const getProductById = async (productId) => {
               description: true,
             },
           },
+        },
+      },
+      images: {
+        select: {
+          product_image_id: true,
+          image_url: true,
+          created_at: true,
+        },
+        orderBy: {
+          created_at: 'asc',
         },
       },
       stockReservations: {
@@ -299,15 +343,17 @@ export const getProductById = async (productId) => {
 
   const visibleStock = product.stock_quantity - reservedQuantity;
 
-  // Transform categories and remove unnecessary fields
+  // Transform categories and images, remove unnecessary fields
   const categories = product.productCategories.map((pc) => pc.category);
-  const { productCategories, stockReservations, ...productWithoutExtras } =
+  const images = product.images.map((img) => img.image_url);
+  const { productCategories, images: productImages, stockReservations, ...productWithoutExtras } =
     product;
 
   return {
     ...productWithoutExtras,
     stock_quantity: visibleStock,
     categories,
+    images,
   };
 };
 
@@ -320,12 +366,12 @@ export const getProductById = async (productId) => {
 export const updateProduct = async (productId, updateData) => {
   const {
     category_ids,
+    image_urls,
     name,
     description,
     price,
     size,
     stock_quantity,
-    image_url,
     reference,
     visible,
   } = updateData;
@@ -349,6 +395,11 @@ export const updateProduct = async (productId, updateData) => {
     }
   }
 
+  // Validate image_urls is an array (if provided)
+  if (image_urls !== undefined && !Array.isArray(image_urls)) {
+    throw new Error('image_urls must be an array');
+  }
+
   // Check if name is being updated and if it already exists
   if (name) {
     const existingProduct = await prisma.product.findFirst({
@@ -368,7 +419,6 @@ export const updateProduct = async (productId, updateData) => {
     ...(stock_quantity !== undefined && {
       stock_quantity: parseInt(stock_quantity, 10),
     }),
-    ...(image_url !== undefined && { image_url }),
     ...(reference !== undefined && { reference }),
     ...(visible !== undefined && { visible }),
   };
@@ -387,6 +437,22 @@ export const updateProduct = async (productId, updateData) => {
     };
   }
 
+  // Handle image updates
+  if (image_urls !== undefined) {
+    // Delete existing images and create new ones
+    await prisma.productImage.deleteMany({
+      where: { product_id: productId },
+    });
+
+    if (image_urls.length > 0) {
+      updateDataPrisma.images = {
+        create: image_urls.map((image_url) => ({
+          image_url,
+        })),
+      };
+    }
+  }
+
   const product = await prisma.product.update({
     where: { product_id: productId },
     data: updateDataPrisma,
@@ -397,7 +463,6 @@ export const updateProduct = async (productId, updateData) => {
       price: true,
       size: true,
       stock_quantity: true,
-      image_url: true,
       reference: true,
       created_at: true,
       productCategories: {
@@ -411,16 +476,28 @@ export const updateProduct = async (productId, updateData) => {
           },
         },
       },
+      images: {
+        select: {
+          product_image_id: true,
+          image_url: true,
+          created_at: true,
+        },
+        orderBy: {
+          created_at: 'asc',
+        },
+      },
     },
   });
 
-  // Transform the response to include categories array
+  // Transform the response to include categories and images arrays
   const categoriesArray = product.productCategories.map((pc) => pc.category);
-  const { productCategories, ...productWithoutCategories } = product;
+  const imagesArray = product.images.map((img) => img.image_url);
+  const { productCategories, images: productImages, ...productWithoutExtras } = product;
 
   return {
-    ...productWithoutCategories,
+    ...productWithoutExtras,
     categories: categoriesArray,
+    images: imagesArray,
   };
 };
 

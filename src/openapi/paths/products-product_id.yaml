@@ -47,6 +47,9 @@ patch:
           name: 'Aceite Diésel 15W40 Premium'
           price: 50000.00
           stock_quantity: 150
+          image_urls:
+            - 'https://example.com/images/aceite-premium-1.jpg'
+            - 'https://example.com/images/aceite-premium-2.jpg'
   responses:
     '200':
       description: Product updated
