@@ -4,6 +4,7 @@ import {
   updateUser,
   deleteUser,
   getAllUsers,
+  linkGuestResourcesToUser,
 } from '../services/users.service.js';
 
 /**
@@ -29,8 +30,14 @@ export const getUsers = async (req, res, next) => {
  */
 export const registerUser = async (req, res, next) => {
   try {
-    const userData = req.body;
+    const { guest_id, ...userData } = req.body;
     const user = await createUser(userData);
+
+    // Link guest resources to user if guest_id is provided
+    if (guest_id && typeof guest_id === 'string' && guest_id.trim() !== '') {
+      await linkGuestResourcesToUser(user.user_id, guest_id.trim());
+    }
+
     res.status(201).json(user);
   } catch (error) {
     if (error.message === 'Email already exists') {

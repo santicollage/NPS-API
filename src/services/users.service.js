@@ -233,3 +233,74 @@ export const deleteUser = async (userId) => {
     where: { user_id: userId },
   });
 };
+
+/**
+ * Link guest carts and orders to a registered user
+ * @param {number} userId - User ID to assign resources to
+ * @param {string} guestId - Guest identifier
+ * @returns {Promise<{ carts: number, orders: number }>} Counts of migrated resources
+ */
+export const linkGuestResourcesToUser = async (userId, guestId) => {
+  if (!guestId || typeof guestId !== 'string' || guestId.trim() === '') {
+    return { carts: 0, orders: 0 };
+  }
+
+  // Normalize guest_id to ensure consistency
+  const normalizedGuestId = guestId.trim();
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      // Migrate all carts from guest to user (active and ordered)
+      // This ensures data consistency even for carts that were converted to orders
+      const cartsUpdate = await tx.cart.updateMany({
+        where: {
+          guest_id: normalizedGuestId,
+          user_id: null,
+        },
+        data: {
+          user_id: userId,
+          guest_id: null,
+        },
+      });
+
+      // Migrate orders from guest to user (excluding cancelled orders)
+      const ordersUpdate = await tx.order.updateMany({
+        where: {
+          guest_id: normalizedGuestId,
+          user_id: null,
+          NOT: {
+            status: 'cancelled',
+          },
+        },
+        data: {
+          user_id: userId,
+          guest_id: null,
+        },
+      });
+
+      // Also migrate payments associated with guest_id (if any)
+      // Payments linked to orders will be handled through the order migration
+      const paymentsUpdate = await tx.payment.updateMany({
+        where: {
+          guest_id: normalizedGuestId,
+          order_id: null, // Only update payments not linked to orders
+        },
+        data: {
+          guest_id: null,
+        },
+      });
+
+      return {
+        carts: cartsUpdate.count,
+        orders: ordersUpdate.count,
+        payments: paymentsUpdate.count,
+      };
+    });
+
+    return result;
+  } catch (error) {
+    // Log error but don't fail the registration/login process
+    console.error('Error linking guest resources to user:', error);
+    return { carts: 0, orders: 0, payments: 0 };
+  }
+};

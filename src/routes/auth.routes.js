@@ -7,14 +7,15 @@ import {
   refreshToken,
 } from '../controllers/auth.controller.js';
 import { authenticateToken } from '../middlewares/auth.middleware.js';
+import { validateOptionalGuestId } from '../middlewares/guest.middleware.js';
 
 const router = express.Router();
 
 // POST /auth/login - Login with email and password
-router.post('/login', login);
+router.post('/login', validateOptionalGuestId, login);
 
 // POST /auth/google - Login/registration with Google OAuth
-router.post('/google', googleAuth);
+router.post('/google', validateOptionalGuestId, googleAuth);
 
 // POST /auth/refresh - Refresh access token
 router.post('/refresh', refreshToken);

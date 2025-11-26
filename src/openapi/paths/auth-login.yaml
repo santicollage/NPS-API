@@ -3,6 +3,9 @@ post:
   description: |
     Login with email and password, generates JWT access token and refresh token.
     The refresh token is automatically set as an HttpOnly cookie named 'refresh_token'.
+    
+    If a `guest_id` is provided, any active carts and non-cancelled orders associated with that guest_id
+    will be automatically linked to the authenticated user account.
   tags:
     - Authentication
   requestBody:
@@ -14,6 +17,7 @@ post:
         example:
           email: 'juan.perez@example.com'
           password: 'password123'
+          guest_id: '550e8400-e29b-41d4-a716-446655440000'
   responses:
     '200':
       description: Login successful

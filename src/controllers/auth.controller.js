@@ -38,9 +38,9 @@ const expiresInToMs = (expiresIn) => {
  */
 export const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, guest_id } = req.body;
 
-    const result = await loginWithEmail(email, password);
+    const result = await loginWithEmail(email, password, guest_id);
 
     // Set refresh token as HttpOnly cookie
     const cookieOptions = {
@@ -78,7 +78,7 @@ export const login = async (req, res, next) => {
  */
 export const googleAuth = async (req, res, next) => {
   try {
-    const { token, id_token } = req.body;
+    const { token, id_token, guest_id } = req.body;
     const idToken = token || id_token;
 
     if (!idToken) {
@@ -90,7 +90,7 @@ export const googleAuth = async (req, res, next) => {
       });
     }
 
-    const result = await loginWithGoogle(idToken);
+    const result = await loginWithGoogle(idToken, guest_id);
 
     // Set refresh token as HttpOnly cookie
     const cookieOptions = {

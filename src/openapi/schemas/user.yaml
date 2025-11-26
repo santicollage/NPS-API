@@ -91,6 +91,15 @@ UserCreate:
       enum: ['customer', 'admin']
       default: 'customer'
       example: 'customer'
+    guest_id:
+      type: string
+      description: |
+        Optional guest identifier. If provided, any active carts and non-cancelled orders
+        associated with this guest_id will be automatically linked to the newly created user account.
+      minLength: 8
+      maxLength: 64
+      pattern: '^[a-zA-Z0-9-]+$'
+      example: '550e8400-e29b-41d4-a716-446655440000'
   required:
     - name
     - email

@@ -11,6 +11,7 @@ import {
   authorizeRoles,
   authorizeOwnResource,
 } from '../middlewares/auth.middleware.js';
+import { validateOptionalGuestId } from '../middlewares/guest.middleware.js';
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ const router = express.Router();
 router.get('/', authenticateToken, authorizeRoles(['admin']), getUsers);
 
 // POST /users - Register a new user (público)
-router.post('/', registerUser);
+router.post('/', validateOptionalGuestId, registerUser);
 
 // GET /users/:user_id - Get user details (requires authentication - admin or own user)
 router.get('/:user_id', authenticateToken, authorizeOwnResource, getUser);

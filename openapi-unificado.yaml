@@ -60,7 +60,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
     post:
       summary: Register a new user
-      description: 'Register a new customer user in the database. Creates user_id, encrypts password.'
+      description: |
+        Register a new customer user in the database. Creates user_id, encrypts password.
+
+        If a `guest_id` is provided, any active carts and non-cancelled orders associated with that guest_id
+        will be automatically linked to the newly created user account.
       tags:
         - Users
       requestBody:
@@ -73,6 +77,7 @@ paths:
               name: Juan Pérez
               email: juan.perez@example.com
               password: password123
+              guest_id: 550e8400-e29b-41d4-a716-446655440000
       responses:
         '201':
           description: User created successfully
@@ -217,6 +222,9 @@ paths:
       description: |
         Login with email and password, generates JWT access token and refresh token.
         The refresh token is automatically set as an HttpOnly cookie named 'refresh_token'.
+
+        If a `guest_id` is provided, any active carts and non-cancelled orders associated with that guest_id
+        will be automatically linked to the authenticated user account.
       tags:
         - Authentication
       requestBody:
@@ -228,6 +236,7 @@ paths:
             example:
               email: juan.perez@example.com
               password: password123
+              guest_id: 550e8400-e29b-41d4-a716-446655440000
       responses:
         '200':
           description: Login successful
@@ -291,6 +300,9 @@ paths:
         Automatic login or register using Google OAuth (google_id).
         Generates JWT access token and refresh token.
         The refresh token is automatically set as an HttpOnly cookie named 'refresh_token'.
+
+        If a `guest_id` is provided, any active carts and non-cancelled orders associated with that guest_id
+        will be automatically linked to the authenticated user account.
       tags:
         - Authentication
       requestBody:
@@ -301,6 +313,7 @@ paths:
               $ref: '#/components/schemas/GoogleAuthRequest'
             example:
               token: ya29.a0AfH6SMC...
+              guest_id: 550e8400-e29b-41d4-a716-446655440000
       responses:
         '200':
           description: Authentication successful
@@ -1436,20 +1449,30 @@ paths:
   /payments/create:
     post:
       summary: Create payment transaction
-      description: 'Create transaction in Wompi, register in payments table with pending status.'
+      description: |
+        Create transaction in Wompi, register in payments table with pending status.
+        This endpoint does not require authentication and supports both authenticated users and guest users.
+        For guest orders, include the `guest_id` parameter to validate access to the order.
       tags:
         - Payments
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/PaymentCreateRequest'
-            example:
-              order_id: 1
-              currency: COP
+            examples:
+              authenticated_user:
+                summary: Authenticated user payment
+                value:
+                  order_id: 1
+                  currency: COP
+              guest_user:
+                summary: Guest user payment
+                value:
+                  order_id: 1
+                  currency: COP
+                  guest_id: 550e8400-e29b-41d4-a716-446655440000
       responses:
         '201':
           description: Payment created
@@ -1458,13 +1481,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaymentCreateResponse'
         '400':
-          description: Bad request
+          description: 'Bad request (e.g., order already has a payment)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (invalid guest access to order)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error (payment service unavailable or failed to create transaction)
           content:
             application/json:
               schema:
@@ -1702,6 +1737,15 @@ components:
             - admin
           default: customer
           example: customer
+        guest_id:
+          type: string
+          description: |
+            Optional guest identifier. If provided, any active carts and non-cancelled orders
+            associated with this guest_id will be automatically linked to the newly created user account.
+          minLength: 8
+          maxLength: 64
+          pattern: '^[a-zA-Z0-9-]+$'
+          example: 550e8400-e29b-41d4-a716-446655440000
       required:
         - name
         - email
@@ -1767,6 +1811,15 @@ components:
         password:
           type: string
           example: password123
+        guest_id:
+          type: string
+          description: |
+            Optional guest identifier. If provided, any active carts and non-cancelled orders
+            associated with this guest_id will be automatically linked to the authenticated user account.
+          minLength: 8
+          maxLength: 64
+          pattern: '^[a-zA-Z0-9-]+$'
+          example: 550e8400-e29b-41d4-a716-446655440000
       required:
         - email
         - password
@@ -1787,13 +1840,26 @@ components:
         This cookie is automatically sent by the browser on subsequent requests to /auth/refresh.
     GoogleAuthRequest:
       type: object
+      description: |
+        Either `token` or `id_token` must be provided. Both fields accept the Google OAuth ID token.
       properties:
         token:
           type: string
-          description: Google OAuth token
+          description: Google OAuth ID token (alternative to `id_token`)
           example: ya29.a0AfH6SMC...
-      required:
-        - token
+        id_token:
+          type: string
+          description: Google OAuth ID token (alternative to `token`)
+          example: ya29.a0AfH6SMC...
+        guest_id:
+          type: string
+          description: |
+            Optional guest identifier. If provided, any active carts and non-cancelled orders
+            associated with this guest_id will be automatically linked to the authenticated user account.
+          minLength: 8
+          maxLength: 64
+          pattern: '^[a-zA-Z0-9-]+$'
+          example: 550e8400-e29b-41d4-a716-446655440000
     LogoutResponse:
       type: object
       properties:
@@ -2383,11 +2449,19 @@ components:
       properties:
         order_id:
           type: integer
+          description: Order ID to create payment for
           example: 1
         currency:
           type: string
           default: COP
+          description: Payment currency (defaults to COP)
           example: COP
+        guest_id:
+          type: string
+          description: |
+            Guest identifier for guest orders. Required when creating payment for a guest order.
+            Must match the guest_id of the order to validate access.
+          example: 550e8400-e29b-41d4-a716-446655440000
       required:
         - order_id
     PaymentCreateResponse:

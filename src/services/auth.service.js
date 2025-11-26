@@ -7,6 +7,7 @@ import {
   verifyRefreshToken,
 } from '../utils/jwt.js';
 import { ENV } from '../config/env.js';
+import { linkGuestResourcesToUser } from './users.service.js';
 
 const googleClient = new OAuth2Client(ENV.GOOGLE_CLIENT_ID);
 
@@ -14,9 +15,10 @@ const googleClient = new OAuth2Client(ENV.GOOGLE_CLIENT_ID);
  * Login with email and password
  * @param {string} email - User's email
  * @param {string} password - User's password
+ * @param {string} [guestId] - Optional guest identifier
  * @returns {Promise<Object>} Object with token and user data
  */
-export const loginWithEmail = async (email, password) => {
+export const loginWithEmail = async (email, password, guestId) => {
   // Find user by email
   const user = await prisma.user.findUnique({
     where: { email },
@@ -62,11 +64,15 @@ export const loginWithEmail = async (email, password) => {
   const accessToken = generateAccessToken(payload);
   const refreshToken = generateRefreshToken(payload);
 
-  // Save refresh token in database
   await prisma.user.update({
     where: { user_id: user.user_id },
     data: { refresh_token: refreshToken },
   });
+
+  // Link guest resources to user if guestId is provided
+  if (guestId && typeof guestId === 'string' && guestId.trim() !== '') {
+    await linkGuestResourcesToUser(user.user_id, guestId.trim());
+  }
 
   // Remove password_hash from user object
   const { password_hash, ...userWithoutPassword } = user;
@@ -81,9 +87,10 @@ export const loginWithEmail = async (email, password) => {
 /**
  * Login/register with Google OAuth
  * @param {string} idToken - Google OAuth ID token
+ * @param {string} [guestId] - Optional guest identifier
  * @returns {Promise<Object>} Object with token and user data
  */
-export const loginWithGoogle = async (idToken) => {
+export const loginWithGoogle = async (idToken, guestId) => {
   try {
     // Verify Google ID token
     const ticket = await googleClient.verifyIdToken({
@@ -192,11 +199,15 @@ export const loginWithGoogle = async (idToken) => {
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 
-    // Save refresh token in database
     await prisma.user.update({
       where: { user_id: user.user_id },
       data: { refresh_token: refreshToken },
     });
+
+    // Link guest resources to user if guestId is provided
+    if (guestId && typeof guestId === 'string' && guestId.trim() !== '') {
+      await linkGuestResourcesToUser(user.user_id, guestId.trim());
+    }
 
     return {
       token: accessToken,
