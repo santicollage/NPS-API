@@ -109,7 +109,8 @@ model Cart {
   guest_id   String?
   status     CartStatus @default(active)
   created_at DateTime   @default(now())
-  updated_at DateTime   @updatedAt
+  updated_at    DateTime   @updatedAt
+  shipping_cost Decimal    @default(0.00) @db.Decimal(10, 2)
 
   user         User?              @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
   items        CartItem[]
@@ -189,7 +190,7 @@ model Payment {
   payment_id           Int           @id @default(autoincrement())
   order_id             Int?
   guest_id             String?
-  wompi_transaction_id String?
+  payu_transaction_id String?
   amount               Decimal?      @db.Decimal(10, 2)
   currency             String        @default("COP")
   status               PaymentStatus @default(pending)
@@ -207,9 +208,11 @@ enum UserRole {
 }
 
 enum ProductSize {
+  extra_small
   small
   medium
   large
+  extra_large
 }
 
 enum MovementType {

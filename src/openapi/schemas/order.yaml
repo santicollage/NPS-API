@@ -25,6 +25,12 @@ Order:
     shipping_cost:
       type: number
       format: float
+      description: |
+        Shipping cost calculated automatically based on product size and quantity.
+        Small products: base 5,000 COP + 2,000 COP per additional unit.
+        Medium products: base 8,000 COP + 3,000 COP per additional unit.
+        Large products: base 12,000 COP + 5,000 COP per additional unit.
+        This cost is included in total_amount.
       example: 10000.00
     status:
       type: string

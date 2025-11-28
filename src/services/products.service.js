@@ -123,7 +123,11 @@ export const getAllProducts = async (filters = {}) => {
   const transformedProducts = products.map((product) => {
     const categories = product.productCategories.map((pc) => pc.category);
     const images = product.images.map((img) => img.image_url);
-    const { productCategories, images: productImages, ...productWithoutExtras } = product;
+    const {
+      productCategories,
+      images: productImages,
+      ...productWithoutExtras
+    } = product;
     return {
       ...productWithoutExtras,
       categories,
@@ -269,7 +273,11 @@ export const createProduct = async (productData) => {
   const categoriesArray =
     product.productCategories?.map((pc) => pc.category) || [];
   const imagesArray = product.images?.map((img) => img.image_url) || [];
-  const { productCategories, images: productImages, ...productWithoutExtras } = product;
+  const {
+    productCategories,
+    images: productImages,
+    ...productWithoutExtras
+  } = product;
 
   return {
     ...productWithoutExtras,
@@ -346,8 +354,12 @@ export const getProductById = async (productId) => {
   // Transform categories and images, remove unnecessary fields
   const categories = product.productCategories.map((pc) => pc.category);
   const images = product.images.map((img) => img.image_url);
-  const { productCategories, images: productImages, stockReservations, ...productWithoutExtras } =
-    product;
+  const {
+    productCategories,
+    images: productImages,
+    stockReservations,
+    ...productWithoutExtras
+  } = product;
 
   return {
     ...productWithoutExtras,
@@ -492,7 +504,11 @@ export const updateProduct = async (productId, updateData) => {
   // Transform the response to include categories and images arrays
   const categoriesArray = product.productCategories.map((pc) => pc.category);
   const imagesArray = product.images.map((img) => img.image_url);
-  const { productCategories, images: productImages, ...productWithoutExtras } = product;
+  const {
+    productCategories,
+    images: productImages,
+    ...productWithoutExtras
+  } = product;
 
   return {
     ...productWithoutExtras,

@@ -8,10 +8,10 @@ import {
  * Create payment transaction
  * This endpoint does not require authentication and supports both authenticated users and guest users.
  * For guest orders, the request body must include a `guest_id` that matches the order's guest_id.
+ * Currency is fixed to COP (Colombian Pesos) as the application only operates in Colombia.
  * @param {Object} req - Express request object
  * @param {Object} req.body - Request body
  * @param {number} req.body.order_id - Order ID to create payment for
- * @param {string} [req.body.currency='COP'] - Payment currency (defaults to COP)
  * @param {string} [req.body.guest_id] - Guest ID (required for guest orders)
  * @param {Object} res - Express response object
  * @param {Function} next - Express next middleware function
@@ -54,7 +54,7 @@ export const createPaymentController = async (req, res, next) => {
         },
       });
     }
-    if (error.message === 'Wompi configuration missing') {
+    if (error.message === 'PayU configuration missing') {
       return res.status(500).json({
         error: {
           message: 'Payment service unavailable',
@@ -62,7 +62,7 @@ export const createPaymentController = async (req, res, next) => {
         },
       });
     }
-    if (error.message === 'Failed to create Wompi transaction') {
+    if (error.message === 'Failed to create PayU transaction') {
       return res.status(500).json({
         error: {
           message: 'Failed to create payment transaction',

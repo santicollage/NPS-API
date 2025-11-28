@@ -17,6 +17,10 @@ Cart:
       type: string
       enum: ['active', 'ordered', 'abandoned']
       example: 'active'
+    shipping_cost:
+      type: number
+      format: float
+      example: 15000.00
     created_at:
       type: string
       format: date-time

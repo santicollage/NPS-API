@@ -6,6 +6,109 @@ import prisma from '../config/db.js';
  * @param {string} guestId - Guest ID (optional)
  * @returns {Promise<Object>} Cart with items
  */
+
+/**
+ * Calculate shipping cost based on volumetric weight vs real weight
+ * @param {Array} items - Array of items with size and quantity
+ * @param {string} destinationZone - 'bogota', 'nacional', or 'remoto'
+ * @returns {Object} Shipping cost details
+ */
+const calculateShippingCost = (items, destinationZone = 'nacional') => {
+  const sizeSpecs = {
+    extra_small: { width: 5, height: 5, length: 5, weight: 0.2 },
+    small: { width: 10, height: 10, length: 10, weight: 1 },
+    medium: { width: 15, height: 15, length: 15, weight: 2 },
+    large: { width: 20, height: 20, length: 20, weight: 5 },
+    extra_large: { width: 30, height: 30, length: 30, weight: 10 },
+  };
+
+  // Configurable tariffs
+  const tariff = {
+    base: 6000,
+    perKg: 2000,
+    nationalExtra: 5000,
+  };
+
+  let totalRealWeight = 0;
+  let totalVolumetricWeight = 0;
+
+  for (const item of items) {
+    const { quantity, productSize } = item;
+    const specs = sizeSpecs[productSize] || sizeSpecs.medium;
+    const { weight, length, width, height } = specs;
+
+    const q = quantity || 1;
+
+    totalRealWeight += weight * q;
+
+    const volumetricWeight = (length * width * height) / 5000;
+    totalVolumetricWeight += volumetricWeight * q;
+  }
+
+  const finalWeight = Math.max(totalRealWeight, totalVolumetricWeight);
+
+  let cost = tariff.base + finalWeight * tariff.perKg;
+
+  const zone = destinationZone.toLowerCase();
+  
+  if (zone === "nacional") {
+    cost += tariff.nationalExtra;
+  }
+
+  cost = Math.ceil(cost / 500) * 500;
+
+  return {
+    cost,
+    finalWeight: Number(finalWeight.toFixed(2)),
+    totalRealWeight: Number(totalRealWeight.toFixed(2)),
+    totalVolumetricWeight: Number(totalVolumetricWeight.toFixed(2)),
+  };
+};
+
+/**
+ * Update cart shipping cost based on current items
+ * @param {number} cartId - Cart ID
+ * @returns {Promise<void>}
+ */
+const updateCartShippingCost = async (cartId) => {
+  const cart = await prisma.cart.findUnique({
+    where: { cart_id: cartId },
+    include: {
+      items: {
+        include: {
+          product: true,
+        },
+      },
+    },
+  });
+
+  if (!cart || !cart.items.length) {
+    if (cart && cart.shipping_cost > 0) {
+       await prisma.cart.update({
+        where: { cart_id: cartId },
+        data: { shipping_cost: 0 },
+      });
+    }
+    return;
+  }
+
+  // Map items to format expected by calculateShippingCost
+  const itemsForCalc = cart.items.map(item => ({
+    quantity: item.quantity,
+    productSize: item.product.size,
+  }));
+
+  // Default to 'nacional' as per requirements ("como si fuera internacional")
+  // Ideally we would get this from user address if available, but for now we assume max cost or standard
+  // User said "como si fuera internacional" which usually implies highest cost/complexity, 
+  // but here we only have bogota/nacional. Let's stick to 'nacional' as a safe default for now.
+  const { cost } = calculateShippingCost(itemsForCalc, 'nacional');
+
+  await prisma.cart.update({
+    where: { cart_id: cartId },
+    data: { shipping_cost: cost },
+  });
+};
 export const getOrCreateActiveCart = async (userId, guestId) => {
   if (!userId && !guestId) {
     throw new Error('Either userId or guestId must be provided');
@@ -142,7 +245,7 @@ export const addItemToCart = async (userId, guestId, productId, quantity) => {
 
     // If new quantity is 0 or negative, remove the item
     if (newQuantity <= 0) {
-      await removeCartItem(userId, existingItem.cart_item_id);
+      await removeCartItem(userId, existingItem.cart_item_id); // removeCartItem already updates shipping cost
       return null; // Item was removed
     }
 
@@ -184,6 +287,9 @@ export const addItemToCart = async (userId, guestId, productId, quantity) => {
         },
       },
     });
+
+    // Update shipping cost
+    await updateCartShippingCost(cart.cart_id);
 
     // Transform to include images array
     const images = updatedItem.product.images?.map((img) => img.image_url) || [];
@@ -239,6 +345,9 @@ export const addItemToCart = async (userId, guestId, productId, quantity) => {
       where: { cart_id: cart.cart_id },
       data: { updated_at: new Date() },
     });
+
+    // Update shipping cost
+    await updateCartShippingCost(cart.cart_id);
 
     // Transform to include images array
     const images = cartItem.product.images?.map((img) => img.image_url) || [];
@@ -337,6 +446,9 @@ export const updateCartItem = async (userId, guestId, cartItemId, quantity) => {
     data: { updated_at: new Date() },
   });
 
+  // Update shipping cost
+  await updateCartShippingCost(cartItem.cart.cart_id);
+
   // Transform to include images array
   const images = updatedItem.product.images?.map((img) => img.image_url) || [];
   return {
@@ -381,6 +493,9 @@ export const removeCartItem = async (userId, guestId, cartItemId) => {
   await prisma.cartItem.delete({
     where: { cart_item_id: cartItemId },
   });
+
+  // Update shipping cost
+  await updateCartShippingCost(cartItem.cart.cart_id);
 };
 
 /**

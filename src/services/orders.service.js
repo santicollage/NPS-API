@@ -56,6 +56,7 @@ export const createOrderFromCart = async (
         product_id: true,
         name: true,
         price: true,
+        size: true,
         stock_quantity: true,
         active: true,
         visible: true,
@@ -73,9 +74,7 @@ export const createOrderFromCart = async (
     });
 
     if (!product || !product.active || !product.visible) {
-      throw new Error(
-        `Product ${item.product.product.name} is no longer available`
-      );
+      throw new Error(`Product ${product.name} is no longer available`);
     }
 
     // Calculate available stock
@@ -100,6 +99,12 @@ export const createOrderFromCart = async (
     });
   }
 
+  // Use shipping cost from cart
+  const shippingCost = Number(cart.shipping_cost) || 0;
+
+  // Add shipping cost to total amount
+  const finalTotalAmount = totalAmount + shippingCost;
+
   // Generate order token for guest orders
   const orderToken = guestId ? randomUUID() : null;
 
@@ -107,7 +112,8 @@ export const createOrderFromCart = async (
   const result = await prisma.$transaction(async (tx) => {
     // Create order
     const orderData = {
-      total_amount: totalAmount,
+      total_amount: finalTotalAmount,
+      shipping_cost: shippingCost,
       status: 'pending',
       items: {
         create: orderItems,

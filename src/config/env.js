@@ -37,9 +37,17 @@ export const ENV = {
   GOOGLE_CLIENT_ID: required('GOOGLE_CLIENT_ID'),
   GOOGLE_CLIENT_SECRET: required('GOOGLE_CLIENT_SECRET'),
 
-  // Wompi Payment Gateway
-  WOMPI_PUBLIC_KEY: required('WOMPI_PUBLIC_KEY'),
-  WOMPI_PRIVATE_KEY: required('WOMPI_PRIVATE_KEY'),
+  // PayU Payment Gateway
+  PAYU_MERCHANT_ID: required('PAYU_MERCHANT_ID'),
+  PAYU_ACCOUNT_ID: required('PAYU_ACCOUNT_ID'),
+  PAYU_API_KEY: required('PAYU_API_KEY'),
+  PAYU_API_LOGIN: required('PAYU_API_LOGIN'),
+  PAYU_ENVIRONMENT: process.env.PAYU_ENVIRONMENT || 'sandbox',
+  PAYU_API_URL:
+    process.env.PAYU_API_URL ||
+    (process.env.NODE_ENV === 'production'
+      ? 'https://api.payulatam.com/payments-api/4.0/service.cgi'
+      : 'https://sandbox.api.payulatam.com/payments-api/4.0/service.cgi'),
 
   // Frontend URL (for payment redirects)
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:5173',

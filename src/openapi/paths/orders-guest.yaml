@@ -1,6 +1,10 @@
 post:
   summary: Create guest order from cart
-  description: Create order from guest cart. Generates order_items and creates stock_reservations for 24 hours. Stock is deducted only when payment is approved. Requires customer information.
+  description: |
+    Create order from guest cart. Generates order_items and creates stock_reservations for 24 hours. 
+    Stock is deducted only when payment is approved. Requires customer information.
+    Shipping cost is automatically calculated based on product size (small, medium, large) and quantity, 
+    and is included in the total_amount. The shipping_cost field in the response shows the calculated shipping cost.
   tags:
     - Orders
   requestBody:

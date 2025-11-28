@@ -1,25 +1,26 @@
 import prisma from '../config/db.js';
 import axios from 'axios';
+import crypto from 'crypto';
 import { ENV } from '../config/env.js';
 import { createStockMovement } from './stock.service.js';
 
 /**
- * Create payment transaction with Wompi
+ * Create payment transaction with PayU
  * This function does not require authentication and supports both authenticated users and guest users.
  * For guest orders (orders without user_id), the guest_id parameter is required and must match the order's guest_id.
  * @param {Object} paymentData - Payment data
  * @param {number} paymentData.order_id - Order ID to create payment for
- * @param {string} [paymentData.currency='COP'] - Payment currency (defaults to COP)
  * @param {string} [paymentData.guest_id] - Guest ID (required for guest orders, must match order's guest_id)
- * @returns {Promise<Object>} Payment creation response with payment_id, wompi_checkout_url, and status
+ * @returns {Promise<Object>} Payment creation response with payment_id, payu_checkout_url, and status
  * @throws {Error} 'Order not found' - If the order does not exist
  * @throws {Error} 'Order already has a payment' - If the order already has an associated payment
  * @throws {Error} 'Invalid guest access to order' - If guest_id is provided but doesn't match the order's guest_id
- * @throws {Error} 'Wompi configuration missing' - If Wompi credentials are not configured
- * @throws {Error} 'Failed to create Wompi transaction' - If Wompi API call fails
+ * @throws {Error} 'PayU configuration missing' - If PayU credentials are not configured
+ * @throws {Error} 'Failed to create PayU transaction' - If PayU API call fails
  */
 export const createPayment = async (paymentData) => {
-  const { order_id, currency = 'COP', guest_id } = paymentData;
+  const { order_id, guest_id } = paymentData;
+  const currency = 'COP'; // Fixed currency for Colombia
 
   // Get order details
   const order = await prisma.order.findUnique({
@@ -47,9 +48,19 @@ export const createPayment = async (paymentData) => {
     throw new Error('Invalid guest access to order');
   }
 
-  // Get Wompi configuration from environment
-  const wompiPublicKey = ENV.WOMPI_PUBLIC_KEY;
-  const wompiPrivateKey = ENV.WOMPI_PRIVATE_KEY;
+  // Get PayU configuration from environment
+  const merchantId = ENV.PAYU_MERCHANT_ID;
+  const accountId = ENV.PAYU_ACCOUNT_ID;
+  const apiKey = ENV.PAYU_API_KEY;
+  const apiLogin = ENV.PAYU_API_LOGIN;
+  const payuApiUrl = ENV.PAYU_API_URL;
+
+  if (!merchantId || !accountId || !apiKey || !apiLogin || !payuApiUrl) {
+    throw new Error('PayU configuration missing');
+  }
+
+  // Generate unique reference code
+  const referenceCode = `order_${order_id}_${Date.now()}`;
 
   // Create payment record with pending status
   const paymentRecordData = {
@@ -69,74 +80,159 @@ export const createPayment = async (paymentData) => {
   });
 
   try {
-    // Create checkout in Wompi
-    const wompiResponse = await axios.post(
-      'https://api.wompi.co/v1/checkouts',
-      {
-        amount_in_cents: Math.round(parseFloat(amount) * 100), // Convert to cents
-        currency,
-        customer_email: order.customer_email,
-        customer_name: order.customer_name,
-        reference: `order_${order_id}_${Date.now()}`,
-        redirect_url: `${ENV.FRONTEND_URL}/payment/success`,
-        payment_method: {
-          type: 'CARD',
-          installments: 1, // Can be made configurable
-        },
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${wompiPrivateKey}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    // Calculate signature for PayU
+    // Signature format: API_KEY~MERCHANT_ID~REFERENCE_CODE~AMOUNT~CURRENCY
+    const signatureString = `${apiKey}~${merchantId}~${referenceCode}~${parseFloat(amount)}~${currency}`;
+    const signature = crypto
+      .createHash('md5')
+      .update(signatureString)
+      .digest('hex');
 
-    // Update payment with Wompi checkout ID
-    const updatedPayment = await prisma.payment.update({
-      where: { payment_id: payment.payment_id },
-      data: {
-        wompi_transaction_id: wompiResponse.data.data.id,
+    // Prepare PayU payment request
+    // PayU Latam API structure
+    const payuRequest = {
+      language: 'es',
+      command: 'SUBMIT_TRANSACTION',
+      merchant: {
+        apiKey: apiKey,
+        apiLogin: apiLogin,
+      },
+      transaction: {
+        order: {
+          accountId: accountId,
+          referenceCode: referenceCode,
+          description: `Pago de orden #${order_id}`,
+          language: 'es',
+          signature: signature,
+          notifyUrl: `${ENV.FRONTEND_URL}/api/payments/webhook`,
+          additionalValues: {
+            TX_VALUE: {
+              value: parseFloat(amount),
+              currency: currency,
+            },
+          },
+          buyer: {
+            merchantBuyerId:
+              order.user_id?.toString() || order.guest_id || 'guest',
+            fullName: order.customer_name || 'Cliente',
+            emailAddress: order.customer_email || '',
+            contactPhone: order.customer_phone || '',
+            dniNumber: order.customer_document || '',
+            shippingAddress: {
+              street1: order.address_line || '',
+              city: order.city || '',
+              state: order.department || '',
+              country: 'CO',
+              postalCode: order.postal_code || '',
+            },
+          },
+        },
+        payer: {
+          merchantPayerId:
+            order.user_id?.toString() || order.guest_id || 'guest',
+          fullName: order.customer_name || 'Cliente',
+          emailAddress: order.customer_email || '',
+          contactPhone: order.customer_phone || '',
+          dniNumber: order.customer_document || '',
+        },
+        extraParameters: {
+          INSTALLMENTS_NUMBER: 1,
+        },
+        type: 'AUTHORIZATION_AND_CAPTURE',
+        paymentMethod: null, // Will be selected by user in PayU checkout
+        paymentCountry: 'CO',
+        deviceSessionId: `session_${Date.now()}`,
+        ipAddress: '127.0.0.1',
+        cookie: `cookie_${Date.now()}`,
+        userAgent: 'Mozilla/5.0',
+      },
+      test: environment === 'sandbox',
+    };
+
+    // Create payment in PayU
+    const payuResponse = await axios.post(payuApiUrl, payuRequest, {
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
       },
     });
 
-    return {
-      payment_id: updatedPayment.payment_id,
-      wompi_checkout_url: wompiResponse.data.data.url,
-      status: updatedPayment.status,
-    };
+    // Check if PayU response is successful
+    if (
+      payuResponse.data &&
+      payuResponse.data.code === 'SUCCESS' &&
+      payuResponse.data.transactionResponse
+    ) {
+      const transactionResponse = payuResponse.data.transactionResponse;
+      const transactionId = transactionResponse.transactionId;
+      const orderId = transactionResponse.orderId;
+      const state = transactionResponse.state;
+
+      // Get payment URL from response (could be in extraParameters or paymentUrl)
+      const paymentUrl =
+        transactionResponse.extraParameters?.BANK_URL ||
+        transactionResponse.extraParameters?.PAYMENT_URL ||
+        transactionResponse.paymentUrl ||
+        `${ENV.FRONTEND_URL}/payment/process`;
+
+      // Update payment with PayU transaction ID
+      const updatedPayment = await prisma.payment.update({
+        where: { payment_id: payment.payment_id },
+        data: {
+          payu_transaction_id: transactionId?.toString(),
+        },
+      });
+
+      return {
+        payment_id: updatedPayment.payment_id,
+        payu_checkout_url: paymentUrl,
+        status: updatedPayment.status,
+        reference_code: referenceCode,
+        transaction_id: transactionId,
+      };
+    } else {
+      const errorMessage =
+        payuResponse.data?.error ||
+        payuResponse.data?.message ||
+        'Failed to create PayU transaction';
+      throw new Error(errorMessage);
+    }
   } catch (error) {
     // Update payment status to error
     await prisma.payment.update({
       where: { payment_id: payment.payment_id },
       data: {
         status: 'error',
-        method: 'wompi_error',
+        method: 'payu_error',
       },
     });
 
-    throw new Error('Failed to create Wompi transaction');
+    throw new Error('Failed to create PayU transaction');
   }
 };
 
 /**
- * Process webhook from Wompi
+ * Process webhook from PayU
  * @param {Object} webhookData - Webhook payload
  * @returns {Promise<Object>} Webhook processing result
  */
 export const processWebhook = async (webhookData) => {
-  const { event, data } = webhookData;
+  // PayU webhook structure
+  const { state_pol, transaction_id, reference_pol, reference_sale } =
+    webhookData;
 
-  if (event !== 'transaction.updated') {
+  if (!transaction_id && !reference_sale) {
     return { message: 'Event not processed' };
   }
 
-  const { transaction } = data;
-  const { id: transactionId, status, reference } = transaction;
-
-  // Find payment by transaction ID
+  // Find payment by transaction ID or reference code
   const payment = await prisma.payment.findFirst({
-    where: { wompi_transaction_id: transactionId },
+    where: {
+      OR: [
+        { payu_transaction_id: transaction_id?.toString() },
+        // Could also search by reference if stored
+      ],
+    },
     include: {
       order: true,
     },
@@ -146,26 +242,27 @@ export const processWebhook = async (webhookData) => {
     throw new Error('Payment not found');
   }
 
-  // Map Wompi status to our status
+  // Map PayU status to our status
+  // PayU states: 4=APPROVED, 5=EXPIRED, 6=DECLINED, 7=PENDING, etc.
   let newStatus;
   let orderStatusUpdate = null;
 
-  switch (status) {
-    case 'APPROVED':
+  switch (state_pol) {
+    case '4': // APPROVED
       newStatus = 'approved';
       orderStatusUpdate = 'paid';
       break;
-    case 'DECLINED':
+    case '6': // DECLINED
+    case '5': // EXPIRED
       newStatus = 'declined';
       orderStatusUpdate = 'cancelled';
       break;
-    case 'ERROR':
-    case 'VOIDED':
-      newStatus = 'error';
-      orderStatusUpdate = 'cancelled';
+    case '7': // PENDING
+      newStatus = 'pending';
       break;
     default:
-      newStatus = 'pending';
+      newStatus = 'error';
+      orderStatusUpdate = 'cancelled';
   }
 
   // Update payment status
@@ -189,7 +286,7 @@ export const processWebhook = async (webhookData) => {
       });
 
       // Process stock deduction and movement for approved payments
-      if (status === 'APPROVED') {
+      if (state_pol === '4') {
         // Get order items with product details
         const orderItems = await tx.orderItem.findMany({
           where: { order_id: payment.order_id },
@@ -258,11 +355,7 @@ export const processWebhook = async (webhookData) => {
             where: { cart_id: cart.cart_id },
           });
         }
-      } else if (
-        status === 'DECLINED' ||
-        status === 'ERROR' ||
-        status === 'VOIDED'
-      ) {
+      } else if (state_pol === '6' || state_pol === '5') {
         // For failed payments, clean up reservations to free up stock
         // Find the cart associated with the order (user or guest)
         let cart = null;

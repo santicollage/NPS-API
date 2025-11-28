@@ -1206,7 +1206,11 @@ paths:
   /orders:
     post:
       summary: Create order from cart
-      description: Create order from active cart. Generates order_items and creates stock_reservations for 24 hours. Stock is deducted only when payment is approved.
+      description: |
+        Create order from active cart. Generates order_items and creates stock_reservations for 24 hours. 
+        Stock is deducted only when payment is approved.
+        Shipping cost is automatically calculated based on product size (small, medium, large) and quantity, 
+        and is included in the total_amount. The shipping_cost field in the response shows the calculated shipping cost.
       requestBody:
         required: true
         content:
@@ -1393,7 +1397,11 @@ paths:
   /orders/guest:
     post:
       summary: Create guest order from cart
-      description: Create order from guest cart. Generates order_items and creates stock_reservations for 24 hours. Stock is deducted only when payment is approved. Requires customer information.
+      description: |
+        Create order from guest cart. Generates order_items and creates stock_reservations for 24 hours. 
+        Stock is deducted only when payment is approved. Requires customer information.
+        Shipping cost is automatically calculated based on product size (small, medium, large) and quantity, 
+        and is included in the total_amount. The shipping_cost field in the response shows the calculated shipping cost.
       tags:
         - Orders
       requestBody:
@@ -1455,9 +1463,10 @@ paths:
     post:
       summary: Create payment transaction
       description: |
-        Create transaction in Wompi, register in payments table with pending status.
+        Create transaction in PayU, register in payments table with pending status.
         This endpoint does not require authentication and supports both authenticated users and guest users.
         For guest orders, include the `guest_id` parameter to validate access to the order.
+        Currency is fixed to COP (Colombian Pesos) as the application only operates in Colombia.
       tags:
         - Payments
       requestBody:
@@ -1471,12 +1480,10 @@ paths:
                 summary: Authenticated user payment
                 value:
                   order_id: 1
-                  currency: COP
               guest_user:
                 summary: Guest user payment
                 value:
                   order_id: 1
-                  currency: COP
                   guest_id: 550e8400-e29b-41d4-a716-446655440000
       responses:
         '201':
@@ -1504,7 +1511,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '500':
-          description: Internal server error (payment service unavailable or failed to create transaction)
+          description: Internal server error (PayU service unavailable or failed to create transaction)
           content:
             application/json:
               schema:
@@ -1512,7 +1519,7 @@ paths:
   /payments/webhook:
     post:
       summary: Payment webhook
-      description: Endpoint to receive payment confirmation from Wompi (updates payments.status and orders.status).
+      description: Endpoint to receive payment confirmation from PayU (updates payments.status and orders.status).
       tags:
         - Payments
       requestBody:
@@ -1522,14 +1529,12 @@ paths:
             schema:
               $ref: '#/components/schemas/WebhookPayload'
             example:
-              event: transaction.updated
-              data:
-                transaction:
-                  id: txn_123456789
-                  status: APPROVED
-                  amount_in_cents: 9000000
-                  currency: COP
-                  reference: order_123
+              state_pol: '4'
+              transaction_id: txn_123456789
+              reference_pol: REF123456
+              reference_sale: order_1_1234567890
+              value: 90000
+              currency: COP
       responses:
         '200':
           description: Webhook processed
@@ -2129,6 +2134,10 @@ components:
             - ordered
             - abandoned
           example: active
+        shipping_cost:
+          type: number
+          format: float
+          example: 15000
         created_at:
           type: string
           format: date-time
@@ -2332,6 +2341,12 @@ components:
         shipping_cost:
           type: number
           format: float
+          description: |
+            Shipping cost calculated automatically based on product size and quantity.
+            Small products: base 5,000 COP + 2,000 COP per additional unit.
+            Medium products: base 8,000 COP + 3,000 COP per additional unit.
+            Large products: base 12,000 COP + 5,000 COP per additional unit.
+            This cost is included in total_amount.
           example: 10000
         status:
           type: string
@@ -2460,7 +2475,7 @@ components:
           nullable: true
           description: Guest identifier for guest payments
           example: 550e8400-e29b-41d4-a716-446655440000
-        wompi_transaction_id:
+        payu_transaction_id:
           type: string
           example: txn_123456789
         amount:
@@ -2498,11 +2513,6 @@ components:
           type: integer
           description: Order ID to create payment for
           example: 1
-        currency:
-          type: string
-          default: COP
-          description: Payment currency (defaults to COP)
-          example: COP
         guest_id:
           type: string
           description: |
@@ -2517,52 +2527,48 @@ components:
         payment_id:
           type: integer
           example: 1
-        wompi_checkout_url:
+        payu_checkout_url:
           type: string
           format: uri
-          example: 'https://checkout.wompi.co/purchase/123456'
+          example: 'https://checkout.payulatam.com/payment/123456'
         status:
           type: string
           example: pending
+        reference_code:
+          type: string
+          description: Payment reference code for tracking
+          example: order_1_1234567890
       required:
         - payment_id
-        - wompi_checkout_url
+        - payu_checkout_url
         - status
     WebhookPayload:
       type: object
+      description: PayU webhook payload structure
       properties:
-        event:
+        state_pol:
           type: string
-          example: transaction.updated
-        data:
-          type: object
-          properties:
-            transaction:
-              type: object
-              properties:
-                id:
-                  type: string
-                  example: txn_123456789
-                status:
-                  type: string
-                  enum:
-                    - APPROVED
-                    - DECLINED
-                    - ERROR
-                    - VOIDED
-                  example: APPROVED
-                amount_in_cents:
-                  type: integer
-                  example: 9000000
-                currency:
-                  type: string
-                  example: COP
-                reference:
-                  type: string
-                  example: order_123
+          description: 'Payment state (4=APPROVED, 5=EXPIRED, 6=DECLINED, 7=PENDING)'
+          example: '4'
+        transaction_id:
+          type: string
+          example: txn_123456789
+        reference_pol:
+          type: string
+          example: REF123456
+        reference_sale:
+          type: string
+          description: Order reference code
+          example: order_1_1234567890
+        value:
+          type: number
+          example: 90000
+        currency:
+          type: string
+          example: COP
       required:
-        - event
-        - data
+        - state_pol
+        - transaction_id
     WebhookResponse:
       type: object
       properties:
