@@ -726,6 +726,127 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /products/bulk:
+    delete:
+      summary: Bulk delete products
+      description: Delete multiple products by their IDs (soft delete). Only accessible by admins.
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_ids
+              properties:
+                product_ids:
+                  type: array
+                  items:
+                    type: integer
+                  description: Array of product IDs to delete
+                  example:
+                    - 1
+                    - 2
+                    - 3
+      responses:
+        '200':
+          description: Products deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Products deleted successfully
+                  count:
+                    type: integer
+                    example: 3
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /products/bulk/visibility:
+    patch:
+      summary: Bulk update product visibility
+      description: Update visibility status for multiple products. Only accessible by admins.
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_ids
+                - visible
+              properties:
+                product_ids:
+                  type: array
+                  items:
+                    type: integer
+                  description: Array of product IDs to update
+                  example:
+                    - 1
+                    - 2
+                    - 3
+                visible:
+                  type: boolean
+                  description: New visibility status
+                  example: true
+      responses:
+        '200':
+          description: Products visibility updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Products visibility updated successfully
+                  count:
+                    type: integer
+                    example: 3
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /cart:
     get:
       summary: Get active cart

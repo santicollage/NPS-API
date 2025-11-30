@@ -4,6 +4,8 @@ import {
   getProductById,
   updateProduct,
   deleteProduct,
+  deleteProductsBulk,
+  updateProductsVisibilityBulk,
 } from '../services/products.service.js';
 
 /**
@@ -207,6 +209,64 @@ export const deleteProductById = async (req, res, next) => {
         error: {
           message: 'Cannot delete product that is in carts or orders',
           status: 409,
+        },
+      });
+    }
+    next(error);
+  }
+};
+
+/**
+ * Bulk delete products
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+export const bulkDeleteProducts = async (req, res, next) => {
+  try {
+    const { product_ids } = req.body;
+
+    const result = await deleteProductsBulk(product_ids);
+    res.status(200).json(result);
+  } catch (error) {
+    if (error.message === 'product_ids must be a non-empty array') {
+      return res.status(400).json({
+        error: {
+          message: 'product_ids must be a non-empty array',
+          status: 400,
+        },
+      });
+    }
+    next(error);
+  }
+};
+
+/**
+ * Bulk update products visibility
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+export const bulkUpdateVisibility = async (req, res, next) => {
+  try {
+    const { product_ids, visible } = req.body;
+
+    const result = await updateProductsVisibilityBulk(product_ids, visible);
+    res.status(200).json(result);
+  } catch (error) {
+    if (error.message === 'product_ids must be a non-empty array') {
+      return res.status(400).json({
+        error: {
+          message: 'product_ids must be a non-empty array',
+          status: 400,
+        },
+      });
+    }
+    if (error.message === 'visible must be a boolean') {
+      return res.status(400).json({
+        error: {
+          message: 'visible must be a boolean',
+          status: 400,
         },
       });
     }

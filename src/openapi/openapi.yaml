@@ -48,6 +48,10 @@ paths:
     $ref: './paths/products.yaml'
   /products/{product_id}:
     $ref: './paths/products-product_id.yaml'
+  /products/bulk:
+    $ref: './paths/products-bulk.yaml'
+  /products/bulk/visibility:
+    $ref: './paths/products-bulk-visibility.yaml'
   # Cart endpoints for authenticated users
   /cart:
     $ref: './paths/cart.yaml'

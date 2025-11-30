@@ -548,3 +548,59 @@ export const deleteProduct = async (productId) => {
     data: { active: false },
   });
 };
+
+/**
+ * Delete multiple products by IDs (soft delete)
+ * @param {number[]} productIds - Array of Product IDs
+ * @returns {Promise<Object>} Result of the operation
+ */
+export const deleteProductsBulk = async (productIds) => {
+  if (!Array.isArray(productIds) || productIds.length === 0) {
+    throw new Error('product_ids must be a non-empty array');
+  }
+
+  // Soft delete - set active to false for all provided IDs
+  const result = await prisma.product.updateMany({
+    where: {
+      product_id: {
+        in: productIds,
+      },
+    },
+    data: { active: false },
+  });
+
+  return {
+    message: 'Products deleted successfully',
+    count: result.count,
+  };
+};
+
+/**
+ * Update visibility for multiple products
+ * @param {number[]} productIds - Array of Product IDs
+ * @param {boolean} visible - New visibility status
+ * @returns {Promise<Object>} Result of the operation
+ */
+export const updateProductsVisibilityBulk = async (productIds, visible) => {
+  if (!Array.isArray(productIds) || productIds.length === 0) {
+    throw new Error('product_ids must be a non-empty array');
+  }
+
+  if (typeof visible !== 'boolean') {
+    throw new Error('visible must be a boolean');
+  }
+
+  const result = await prisma.product.updateMany({
+    where: {
+      product_id: {
+        in: productIds,
+      },
+    },
+    data: { visible },
+  });
+
+  return {
+    message: 'Products visibility updated successfully',
+    count: result.count,
+  };
+};
