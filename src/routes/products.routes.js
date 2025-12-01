@@ -27,6 +27,22 @@ router.post(
   createNewProduct
 );
 
+// DELETE /products/bulk - Bulk delete products (admin only)
+router.delete(
+  '/bulk',
+  authenticateToken,
+  authorizeRoles(['admin']),
+  bulkDeleteProducts
+);
+
+// PATCH /products/bulk/visibility - Bulk update visibility (admin only)
+router.patch(
+  '/bulk/visibility',
+  authenticateToken,
+  authorizeRoles(['admin']),
+  bulkUpdateVisibility
+);
+
 // GET /products/:product_id - Get product details (public)
 router.get('/:product_id', getProduct);
 
@@ -44,22 +60,6 @@ router.delete(
   authenticateToken,
   authorizeRoles(['admin']),
   deleteProductById
-);
-
-// DELETE /products/bulk - Bulk delete products (admin only)
-router.delete(
-  '/bulk',
-  authenticateToken,
-  authorizeRoles(['admin']),
-  bulkDeleteProducts
-);
-
-// PATCH /products/bulk/visibility - Bulk update visibility (admin only)
-router.patch(
-  '/bulk/visibility',
-  authenticateToken,
-  authorizeRoles(['admin']),
-  bulkUpdateVisibility
 );
 
 export default router;
