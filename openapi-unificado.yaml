@@ -34,6 +34,19 @@ paths:
         - Users
       security:
         - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+          description: Items per page
       responses:
         '200':
           description: List of users
@@ -2066,9 +2079,11 @@ components:
         size:
           type: string
           enum:
+            - extra_small
             - small
             - medium
             - large
+            - extra_large
           example: medium
         stock_quantity:
           type: integer
@@ -2140,12 +2155,7 @@ components:
           format: float
           example: 45000
         size:
-          type: string
-          enum:
-            - small
-            - medium
-            - large
-          example: medium
+          $ref: '#/components/schemas/Product/properties/size'
         stock_quantity:
           type: integer
           example: 100
@@ -2188,12 +2198,7 @@ components:
           format: float
           example: 50000
         size:
-          type: string
-          enum:
-            - small
-            - medium
-            - large
-          example: large
+          $ref: '#/components/schemas/Product/properties/size'
         stock_quantity:
           type: integer
           example: 150

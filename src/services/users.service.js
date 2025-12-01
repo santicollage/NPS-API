@@ -5,31 +5,43 @@ import prisma from '../config/db.js';
  * Get all users
  * @returns {Promise<Object>} Object containing users array and total count
  */
-export const getAllUsers = async () => {
-  const users = await prisma.user.findMany({
-    select: {
-      user_id: true,
-      name: true,
-      email: true,
-      google_id: true,
-      phone: true,
-      city: true,
-      department: true,
-      address_line: true,
-      postal_code: true,
-      image_url: true,
-      role: true,
-      created_at: true,
-      updated_at: true,
-    },
-    orderBy: {
-      created_at: 'desc',
-    },
-  });
+export const getAllUsers = async (page = 1, limit = 20) => {
+  const skip = (page - 1) * limit;
+
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      select: {
+        user_id: true,
+        name: true,
+        email: true,
+        google_id: true,
+        phone: true,
+        city: true,
+        department: true,
+        address_line: true,
+        postal_code: true,
+        image_url: true,
+        role: true,
+        created_at: true,
+        updated_at: true,
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+      skip,
+      take: limit,
+    }),
+    prisma.user.count(),
+  ]);
 
   return {
     users,
-    total: users.length,
+    pagination: {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
   };
 };
 

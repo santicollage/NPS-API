@@ -45,7 +45,7 @@ export default function setupSecurity(app) {
 
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 min
-    max: 100, // limit of 100 requests per windowMs
+    max: 1000, // limit of 1000 requests per windowMs
     message: {
       status: 429,
       error: 'Too many requests, please try again later.',

@@ -15,7 +15,8 @@ import {
  */
 export const getUsers = async (req, res, next) => {
   try {
-    const result = await getAllUsers();
+    const { page, limit } = req.query;
+    const result = await getAllUsers(page, limit);
     res.status(200).json(result);
   } catch (error) {
     next(error);
