@@ -15,9 +15,7 @@ Product:
       format: float
       example: 45000.00
     size:
-      type: string
-      enum: ['small', 'medium', 'large']
-      example: 'medium'
+      $ref: '#/ProductSize'
     stock_quantity:
       type: integer
       example: 100
@@ -87,9 +85,7 @@ ProductCreate:
       format: float
       example: 45000.00
     size:
-      type: string
-      enum: ['small', 'medium', 'large']
-      example: 'medium'
+      $ref: '#/ProductSize'
     stock_quantity:
       type: integer
       example: 100
@@ -131,9 +127,7 @@ ProductUpdate:
       format: float
       example: 50000.00
     size:
-      type: string
-      enum: ['small', 'medium', 'large']
-      example: 'large'
+      $ref: '#/ProductSize'
     stock_quantity:
       type: integer
       example: 150
@@ -144,6 +138,11 @@ ProductUpdate:
       type: boolean
       example: false
   # No required fields for update
+
+ProductSize:
+  type: string
+  enum: ['extra_small', 'small', 'medium', 'large', 'extra_large']
+  example: 'medium'
 
 ProductsList:
   type: object

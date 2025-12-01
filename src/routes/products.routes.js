@@ -11,12 +11,13 @@ import {
 import {
   authenticateToken,
   authorizeRoles,
+  optionalAuthenticateToken,
 } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
 // GET /products - Get all products with optional filtering (public)
-router.get('/', getProducts);
+router.get('/', optionalAuthenticateToken, getProducts);
 
 // POST /products - Create new product (admin only)
 router.post(
