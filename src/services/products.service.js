@@ -477,6 +477,7 @@ export const updateProduct = async (productId, updateData) => {
       stock_quantity: true,
       reference: true,
       created_at: true,
+      visible: true,
       productCategories: {
         select: {
           category: {
