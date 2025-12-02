@@ -154,12 +154,30 @@ export const getOrders = async (req, res, next) => {
   try {
     const userId = req.user.user_id;
     const userRole = req.user?.role || 'customer';
-    const { status, page, limit } = req.query;
+    const {
+      status,
+      page,
+      limit,
+      search,
+      startDate,
+      endDate,
+      minPrice,
+      maxPrice,
+      sortBy,
+      sortOrder,
+    } = req.query;
 
     const filters = {
       ...(status && { status }),
       ...(page && { page: parseInt(page, 10) }),
       ...(limit && { limit: parseInt(limit, 10) }),
+      ...(search && { search }),
+      ...(startDate && { startDate }),
+      ...(endDate && { endDate }),
+      ...(minPrice && { minPrice }),
+      ...(maxPrice && { maxPrice }),
+      ...(sortBy && { sortBy }),
+      ...(sortOrder && { sortOrder }),
       isAdmin: userRole === 'admin',
     };
 

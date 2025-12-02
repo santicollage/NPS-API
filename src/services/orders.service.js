@@ -213,18 +213,67 @@ export const createOrderFromCart = async (
  * @returns {Promise<Object>} Object with orders array and pagination info
  */
 export const getUserOrders = async (userId, filters = {}) => {
-  const { status, page = 1, limit = 20, isAdmin = false } = filters;
+  const {
+    status,
+    page = 1,
+    limit = 20,
+    isAdmin = false,
+    search,
+    startDate,
+    endDate,
+    minPrice,
+    maxPrice,
+    sortBy = 'created_at',
+    sortOrder = 'desc',
+  } = filters;
 
   const skip = (page - 1) * limit;
 
+  // Build where clause
   const where = {
-    ...(status && { status }),
     ...(!isAdmin && { user_id: userId }), // If not admin, filter by user
   };
 
-  const orderBy = {
-    created_at: 'desc',
-  };
+  if (status) {
+    where.status = status;
+  }
+
+  if (search) {
+    where.OR = [
+      { customer_name: { contains: search, mode: 'insensitive' } },
+      { customer_email: { contains: search, mode: 'insensitive' } },
+    ];
+  }
+
+  if (startDate || endDate) {
+    where.created_at = {};
+    if (startDate) {
+      where.created_at.gte = new Date(startDate);
+    }
+    if (endDate) {
+      where.created_at.lte = new Date(endDate);
+    }
+  }
+
+  if (minPrice || maxPrice) {
+    where.total_amount = {};
+    if (minPrice) {
+      where.total_amount.gte = parseFloat(minPrice);
+    }
+    if (maxPrice) {
+      where.total_amount.lte = parseFloat(maxPrice);
+    }
+  }
+
+  // Build orderBy clause
+  let orderBy = {};
+  if (sortBy === 'price') {
+    orderBy = { total_amount: sortOrder };
+  } else if (sortBy === 'name') {
+    orderBy = { customer_name: sortOrder };
+  } else {
+    orderBy = { [sortBy]: sortOrder };
+  }
 
   const [orders, total] = await Promise.all([
     prisma.order.findMany({
