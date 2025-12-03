@@ -51,6 +51,12 @@ export const ENV = {
 
   // Frontend URL (for payment redirects)
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:5173',
+
+  // Email Service (Brevo)
+  BREVO_API_KEY: required('BREVO_API_KEY'),
+  EMAIL_SENDER: required('EMAIL_SENDER'),
+  EMAIL_SENDER_NAME: required('EMAIL_SENDER_NAME'),
+  ADMIN_EMAIL: required('ADMIN_EMAIL'),
 };
 
 console.log('🤫 Environment variables loaded successfully.');

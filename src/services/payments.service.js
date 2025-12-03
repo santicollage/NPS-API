@@ -3,6 +3,7 @@ import axios from 'axios';
 import crypto from 'crypto';
 import { ENV } from '../config/env.js';
 import { createStockMovement } from './stock.service.js';
+import { sendOrderConfirmationEmails } from './email.service.js';
 
 /**
  * Create payment transaction with PayU
@@ -273,6 +274,8 @@ export const processWebhook = async (webhookData) => {
     },
   });
 
+  let emailData = null;
+
   // Update order status if payment was approved or failed
   if (orderStatusUpdate) {
     // Use transaction to ensure consistency
@@ -295,6 +298,7 @@ export const processWebhook = async (webhookData) => {
               select: {
                 product_id: true,
                 stock_quantity: true,
+                name: true,
               },
             },
           },
@@ -330,6 +334,12 @@ export const processWebhook = async (webhookData) => {
             },
           });
         }
+
+        // Prepare data for email (captured inside transaction to ensure we have the items)
+        emailData = {
+          order: payment.order,
+          items: orderItems,
+        };
 
         // Delete any active reservations for this order's cart (if exists)
         // Find the cart associated with the order (user or guest)
@@ -383,6 +393,11 @@ export const processWebhook = async (webhookData) => {
         }
       }
     });
+  }
+
+  // Send emails if payment was approved and data is available
+  if (emailData) {
+    await sendOrderConfirmationEmails(emailData.order, emailData.items);
   }
 
   return { message: 'Webhook processed successfully' };
