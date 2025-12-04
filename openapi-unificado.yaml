@@ -369,6 +369,84 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /auth/change-password:
+    put:
+      summary: Change user password
+      description: |
+        Change the password for an authenticated user. Requires the current password for verification.
+
+        **Note:** This endpoint is only available for users who have a password set. Users who registered
+        via Google OAuth and have not set a password cannot use this endpoint.
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+            example:
+              current_password: oldPassword123
+              new_password: newSecurePassword456
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangePasswordResponse'
+        '400':
+          description: Bad request - Invalid input or Google OAuth user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingFields:
+                  summary: Missing required fields
+                  value:
+                    error:
+                      message: Current password and new password are required
+                      status: 400
+                passwordTooShort:
+                  summary: New password too short
+                  value:
+                    error:
+                      message: New password must be at least 6 characters long
+                      status: 400
+                googleUser:
+                  summary: Google OAuth user
+                  value:
+                    error:
+                      message: Cannot change password. This account uses Google authentication.
+                      status: 400
+        '401':
+          description: Unauthorized - Invalid current password or missing/invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidPassword:
+                  summary: Invalid current password
+                  value:
+                    error:
+                      message: Current password is incorrect
+                      status: 401
+                noToken:
+                  summary: Missing authentication token
+                  value:
+                    error:
+                      message: No token provided
+                      status: 401
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /categories:
     get:
       summary: List all categories
@@ -2074,6 +2152,30 @@ components:
           example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
       required:
         - token
+    ChangePasswordRequest:
+      type: object
+      properties:
+        current_password:
+          type: string
+          description: Current password for verification
+          minLength: 1
+          example: oldPassword123
+        new_password:
+          type: string
+          description: New password (minimum 6 characters)
+          minLength: 6
+          example: newSecurePassword456
+      required:
+        - current_password
+        - new_password
+    ChangePasswordResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Password changed successfully
+      required:
+        - message
     Category:
       type: object
       properties:

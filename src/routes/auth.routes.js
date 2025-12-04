@@ -5,6 +5,7 @@ import {
   logout,
   getMe,
   refreshToken,
+  changePassword,
 } from '../controllers/auth.controller.js';
 import { authenticateToken } from '../middlewares/auth.middleware.js';
 import { validateOptionalGuestId } from '../middlewares/guest.middleware.js';
@@ -25,5 +26,8 @@ router.post('/logout', authenticateToken, logout);
 
 // GET /auth/me - Get authenticated user data (requires authentication)
 router.get('/me', authenticateToken, getMe);
+
+// PUT /auth/change-password - Change user password (requires authentication)
+router.put('/change-password', authenticateToken, changePassword);
 
 export default router;

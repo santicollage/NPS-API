@@ -80,3 +80,29 @@ RefreshTokenResponse:
       example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
   required:
     - token
+
+ChangePasswordRequest:
+  type: object
+  properties:
+    current_password:
+      type: string
+      description: Current password for verification
+      minLength: 1
+      example: 'oldPassword123'
+    new_password:
+      type: string
+      description: New password (minimum 6 characters)
+      minLength: 6
+      example: 'newSecurePassword456'
+  required:
+    - current_password
+    - new_password
+
+ChangePasswordResponse:
+  type: object
+  properties:
+    message:
+      type: string
+      example: 'Password changed successfully'
+  required:
+    - message

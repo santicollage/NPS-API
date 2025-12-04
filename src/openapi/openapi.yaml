@@ -40,6 +40,8 @@ paths:
     $ref: './paths/auth-google.yaml'
   /auth/refresh:
     $ref: './paths/auth-refresh.yaml'
+  /auth/change-password:
+    $ref: './paths/auth-change-password.yaml'
   /categories:
     $ref: './paths/categories.yaml'
   /categories/{category_id}:
@@ -127,6 +129,10 @@ components:
       $ref: './schemas/auth.yaml#/LogoutResponse'
     RefreshTokenResponse:
       $ref: './schemas/auth.yaml#/RefreshTokenResponse'
+    ChangePasswordRequest:
+      $ref: './schemas/auth.yaml#/ChangePasswordRequest'
+    ChangePasswordResponse:
+      $ref: './schemas/auth.yaml#/ChangePasswordResponse'
     Category:
       $ref: './schemas/category.yaml#/Category'
     CategoryCreate:

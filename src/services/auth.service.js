@@ -305,3 +305,53 @@ export const getAuthenticatedUser = async (userId) => {
 
   return user;
 };
+
+/**
+ * Change user password
+ * @param {number} userId - User ID
+ * @param {string} currentPassword - Current password
+ * @param {string} newPassword - New password
+ * @returns {Promise<Object>} Success message
+ */
+export const changePassword = async (userId, currentPassword, newPassword) => {
+  // Find user by ID
+  const user = await prisma.user.findUnique({
+    where: { user_id: userId },
+    select: {
+      user_id: true,
+      email: true,
+      password_hash: true,
+    },
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Check if user has a password set (not a Google OAuth user)
+  if (!user.password_hash) {
+    throw new Error('No password set');
+  }
+
+  // Verify current password
+  const isValidPassword = await bcrypt.compare(
+    currentPassword,
+    user.password_hash
+  );
+  if (!isValidPassword) {
+    throw new Error('Invalid current password');
+  }
+
+  // Hash new password
+  const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+  // Update password in database
+  await prisma.user.update({
+    where: { user_id: userId },
+    data: { password_hash: newPasswordHash },
+  });
+
+  return {
+    message: 'Password changed successfully',
+  };
+};
