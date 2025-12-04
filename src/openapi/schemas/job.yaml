@@ -1,0 +1,39 @@
+CleanupResponse:
+  type: object
+  properties:
+    message:
+      type: string
+      example: 'Cleanup completed successfully'
+    cleaned_reservations:
+      type: integer
+      example: 5
+  required:
+    - message
+    - cleaned_reservations
+
+HealthResponse:
+  type: object
+  properties:
+    status:
+      type: string
+      example: 'healthy'
+    timestamp:
+      type: string
+      format: date-time
+      example: '2023-10-01T12:00:00Z'
+    services:
+      type: object
+      properties:
+        database:
+          type: string
+          example: 'connected'
+        redis:
+          type: string
+          example: 'connected'
+        scheduler:
+          type: string
+          example: 'running'
+  required:
+    - status
+    - timestamp
+    - services

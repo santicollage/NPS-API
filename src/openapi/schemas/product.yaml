@@ -1,0 +1,176 @@
+Product:
+  type: object
+  properties:
+    product_id:
+      type: integer
+      example: 1
+    name:
+      type: string
+      example: 'Aceite Diésel 15W40'
+    description:
+      type: string
+      example: 'Aceite mineral para motores diésel de alto rendimiento'
+    price:
+      type: number
+      format: float
+      example: 45000.00
+    size:
+      $ref: '#/ProductSize'
+    stock_quantity:
+      type: integer
+      example: 100
+    images:
+      type: array
+      items:
+        type: string
+        format: uri
+      example:
+        - 'https://example.com/images/aceite-15w40-1.jpg'
+        - 'https://example.com/images/aceite-15w40-2.jpg'
+    reference:
+      type: string
+      example: 'REF-001'
+    visible:
+      type: boolean
+      example: true
+    active:
+      type: boolean
+      example: true
+    created_at:
+      type: string
+      format: date-time
+      example: '2023-10-01T12:00:00Z'
+    categories:
+      type: array
+      items:
+        $ref: './category.yaml#/Category'
+  required:
+    - product_id
+    - name
+    - price
+    - size
+    - stock_quantity
+    - created_at
+    - categories
+    - visible
+    - active
+    - images
+
+ProductCreate:
+  type: object
+  properties:
+    category_ids:
+      type: array
+      items:
+        type: integer
+      example: [1, 2]
+      description: Optional array of category IDs
+    image_urls:
+      type: array
+      items:
+        type: string
+        format: uri
+      example:
+        - 'https://example.com/images/aceite-15w40-1.jpg'
+        - 'https://example.com/images/aceite-15w40-2.jpg'
+      description: Optional array of image URLs
+    name:
+      type: string
+      example: 'Aceite Diésel 15W40'
+    description:
+      type: string
+      example: 'Aceite mineral para motores diésel de alto rendimiento'
+    price:
+      type: number
+      format: float
+      example: 45000.00
+    size:
+      $ref: '#/ProductSize'
+    stock_quantity:
+      type: integer
+      example: 100
+    reference:
+      type: string
+      example: 'REF-001'
+  required:
+    - name
+    - price
+    - size
+    - stock_quantity
+
+ProductUpdate:
+  type: object
+  properties:
+    category_ids:
+      type: array
+      items:
+        type: integer
+      example: [1, 3]
+    image_urls:
+      type: array
+      items:
+        type: string
+        format: uri
+      example:
+        - 'https://example.com/images/aceite-premium-1.jpg'
+        - 'https://example.com/images/aceite-premium-2.jpg'
+        - 'https://example.com/images/aceite-premium-3.jpg'
+      description: Array of image URLs (replaces all existing images)
+    name:
+      type: string
+      example: 'Aceite Diésel 15W40 Premium'
+    description:
+      type: string
+      example: 'Descripción actualizada'
+    price:
+      type: number
+      format: float
+      example: 50000.00
+    size:
+      $ref: '#/ProductSize'
+    stock_quantity:
+      type: integer
+      example: 150
+    reference:
+      type: string
+      example: 'REF-001-UPDATED'
+    visible:
+      type: boolean
+      example: false
+  # No required fields for update
+
+ProductSize:
+  type: string
+  enum: ['extra_small', 'small', 'medium', 'large', 'extra_large']
+  example: 'medium'
+
+ProductsList:
+  type: object
+  properties:
+    products:
+      type: array
+      items:
+        $ref: '#/Product'
+    pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 100
+        totalPages:
+          type: integer
+          example: 5
+      required:
+        - page
+        - limit
+        - total
+        - totalPages
+  required:
+    - products
+    - pagination

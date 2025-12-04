@@ -1,0 +1,33 @@
+post:
+  summary: Google OAuth login/register
+  description: |
+    Automatic login or register using Google OAuth (google_id).
+    Generates JWT access token and refresh token.
+    The refresh token is automatically set as an HttpOnly cookie named 'refresh_token'.
+    
+    If a `guest_id` is provided, any active carts and non-cancelled orders associated with that guest_id
+    will be automatically linked to the authenticated user account.
+  tags:
+    - Authentication
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/auth.yaml#/GoogleAuthRequest'
+        example:
+          token: 'ya29.a0AfH6SMC...'
+          guest_id: '550e8400-e29b-41d4-a716-446655440000'
+  responses:
+    '200':
+      description: Authentication successful
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth.yaml#/LoginResponse'
+    '400':
+      description: Invalid token
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

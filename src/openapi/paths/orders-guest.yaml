@@ -1,0 +1,38 @@
+post:
+  summary: Create guest order from cart
+  description: |
+    Create order from guest cart. Generates order_items and creates stock_reservations for 24 hours. 
+    Stock is deducted only when payment is approved. Requires customer information.
+    Shipping cost is automatically calculated based on product size (small, medium, large) and quantity, 
+    and is included in the total_amount. The shipping_cost field in the response shows the calculated shipping cost.
+  tags:
+    - Orders
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/guest.yaml#/GuestOrderCreate'
+        example:
+          guest_id: '550e8400-e29b-41d4-a716-446655440000'
+          customer_name: 'Juan Pérez'
+          customer_email: 'juan@email.com'
+          customer_phone: '+57 300 123 4567'
+          customer_document: '123456789'
+          department: 'Cundinamarca'
+          city: 'Bogotá'
+          address_line: 'Calle 123 #45-67'
+          postal_code: '110111'
+  responses:
+    '201':
+      description: Guest order created
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/order.yaml#/Order'
+    '400':
+      description: Bad request (empty cart or insufficient stock)
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

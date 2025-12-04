@@ -1,0 +1,72 @@
+patch:
+  summary: Update cart item quantity
+  description: Update quantity of product in cart. Adjusts corresponding reservation.
+  tags:
+    - Cart
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: cart_item_id
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 1
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/cart.yaml#/CartItemUpdate'
+        example:
+          quantity: 3
+  responses:
+    '200':
+      description: Item updated
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/cart.yaml#/CartItem'
+    '400':
+      description: Bad request (insufficient stock)
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '404':
+      description: Cart item not found
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+delete:
+  summary: Remove item from cart
+  description: Remove a product from cart. Releases associated reservation.
+  tags:
+    - Cart
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: cart_item_id
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 1
+  responses:
+    '200':
+      description: Item removed
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: 'Item removed from cart'
+    '404':
+      description: Cart item not found
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

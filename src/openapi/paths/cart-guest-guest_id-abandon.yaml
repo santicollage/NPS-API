@@ -1,0 +1,23 @@
+post:
+  summary: Abandon guest cart
+  description: Mark guest cart as "abandoned" manually (optional).
+  tags:
+    - Cart
+  parameters:
+    - name: guest_id
+      in: path
+      required: true
+      schema:
+        type: string
+      example: '550e8400-e29b-41d4-a716-446655440000'
+  responses:
+    '200':
+      description: Guest cart abandoned
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: 'Cart marked as abandoned'

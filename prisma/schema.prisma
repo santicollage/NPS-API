@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl"]
 }
 
 datasource db {
@@ -11,38 +12,231 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  role      String   @default("customer") // admin, customer
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  user_id         Int      @id @default(autoincrement())
+  name            String
+  email           String   @unique
+  password_hash   String?
+  google_id       String?
+  phone           String?
+  city            String?
+  department      String?
+  address_line    String?
+  postal_code     String?
+  image_url       String?
+  role            UserRole @default(customer)
+  refresh_token   String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  carts  Cart[]
+  orders Order[]
 
   @@map("users")
 }
 
 model Category {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  category_id Int     @id @default(autoincrement())
+  name        String
+  description String?
 
-  products  Product[]
+  productCategories ProductCategory[]
 
   @@map("categories")
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
-  name        String
-  categoryId  Int
-  price       Float
-  size        String   // small, medium, large
-  stock       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  product_id     Int         @id @default(autoincrement())
+  name           String
+  description    String?
+  price          Decimal     @db.Decimal(10, 2)
+  size           ProductSize
+  stock_quantity Int         @default(0)
+  reference      String?
+  visible        Boolean     @default(true)
+  active         Boolean     @default(true)
+  created_at     DateTime    @default(now())
 
-  category    Category @relation(fields: [categoryId], references: [id])
+  productCategories ProductCategory[]
+  cartItems         CartItem[]
+  orderItems        OrderItem[]
+  stockMovements    StockMovement[]
+  stockReservations StockReservation[]
+  images            ProductImage[]
 
   @@map("products")
+}
+
+model ProductCategory {
+  product_category_id Int      @id @default(autoincrement())
+  product_id          Int
+  category_id         Int
+  created_at          DateTime @default(now())
+
+  product  Product  @relation(fields: [product_id], references: [product_id], onDelete: Cascade)
+  category Category @relation(fields: [category_id], references: [category_id], onDelete: Cascade)
+
+  @@unique([product_id, category_id])
+  @@map("product_categories")
+}
+
+model ProductImage {
+  product_image_id Int      @id @default(autoincrement())
+  product_id       Int
+  image_url        String
+  created_at       DateTime @default(now())
+
+  product Product @relation(fields: [product_id], references: [product_id], onDelete: Cascade)
+
+  @@map("product_images")
+}
+
+model StockMovement {
+  movement_id Int          @id @default(autoincrement())
+  product_id  Int
+  type        MovementType
+  quantity    Int
+  reason      String?
+  created_at  DateTime     @default(now())
+
+  product Product @relation(fields: [product_id], references: [product_id], onDelete: Cascade)
+
+  @@map("stock_movements")
+}
+
+model Cart {
+  cart_id    Int        @id @default(autoincrement())
+  user_id    Int?
+  guest_id   String?
+  status     CartStatus @default(active)
+  created_at DateTime   @default(now())
+  updated_at    DateTime   @updatedAt
+  shipping_cost Decimal    @default(0.00) @db.Decimal(10, 2)
+
+  user         User?              @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  items        CartItem[]
+  reservations StockReservation[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  cart_item_id   Int       @id @default(autoincrement())
+  cart_id        Int
+  product_id     Int
+  quantity       Int
+  reserved_until DateTime?
+  created_at     DateTime  @default(now())
+
+  cart    Cart    @relation(fields: [cart_id], references: [cart_id], onDelete: Cascade)
+  product Product @relation(fields: [product_id], references: [product_id], onDelete: Cascade)
+
+  @@map("cart_items")
+}
+
+model StockReservation {
+  reservation_id Int      @id @default(autoincrement())
+  cart_id        Int
+  product_id     Int
+  quantity       Int
+  expires_at     DateTime
+  created_at     DateTime @default(now())
+
+  cart    Cart    @relation(fields: [cart_id], references: [cart_id], onDelete: Cascade)
+  product Product @relation(fields: [product_id], references: [product_id], onDelete: Cascade)
+
+  @@map("stock_reservations")
+}
+
+model Order {
+  order_id         Int         @id @default(autoincrement())
+  user_id          Int?
+  guest_id         String?
+  order_token      String?     @unique
+  customer_name    String?
+  customer_email   String?
+  customer_phone   String?
+  customer_document String?
+  department       String?
+  city             String?
+  address_line     String?
+  postal_code      String?
+  total_amount     Decimal     @db.Decimal(10, 2)
+  shipping_cost    Decimal     @default(0.00) @db.Decimal(10, 2)
+  status           OrderStatus @default(pending)
+  created_at       DateTime    @default(now())
+
+  user     User?       @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  items    OrderItem[]
+  payments Payment[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  order_item_id Int      @id @default(autoincrement())
+  order_id      Int
+  product_id    Int
+  quantity      Int
+  unit_price    Decimal? @db.Decimal(10, 2)
+  subtotal      Decimal? @db.Decimal(10, 2)
+
+  order   Order   @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+  product Product @relation(fields: [product_id], references: [product_id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+model Payment {
+  payment_id           Int           @id @default(autoincrement())
+  order_id             Int?
+  guest_id             String?
+  payu_transaction_id String?
+  amount               Decimal?      @db.Decimal(10, 2)
+  currency             String        @default("COP")
+  status               PaymentStatus @default(pending)
+  method               String?
+  created_at           DateTime      @default(now())
+
+  order Order? @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+enum UserRole {
+  customer
+  admin
+}
+
+enum ProductSize {
+  extra_small
+  small
+  medium
+  large
+  extra_large
+}
+
+enum MovementType {
+  entry
+  exit
+}
+
+enum CartStatus {
+  active
+  ordered
+  abandoned
+}
+
+enum OrderStatus {
+  pending
+  paid
+  shipped
+  delivered
+  cancelled
+}
+
+enum PaymentStatus {
+  pending
+  approved
+  declined
+  error
 }

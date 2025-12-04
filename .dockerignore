@@ -1,0 +1,24 @@
+# Directorios de dependencias y de construcción
+node_modules
+dist
+build
+temp
+tmp
+
+# Archivos de caché del SO y editores
+.DS_Store
+*.swp
+Thumbs.db
+
+# Directorios de Docker/IDE
+.docker
+.vscode
+.idea
+
+# Directorios de control de versiones
+.git
+.gitignore
+
+# Archivos de logs y bases de datos locales
+*.log
+*.sqlite

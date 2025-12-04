@@ -1,0 +1,54 @@
+delete:
+  summary: Bulk delete products
+  description: Delete multiple products by their IDs (soft delete). Only accessible by admins.
+  tags:
+    - Products
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - product_ids
+          properties:
+            product_ids:
+              type: array
+              items:
+                type: integer
+              description: Array of product IDs to delete
+              example: [1, 2, 3]
+  responses:
+    '200':
+      description: Products deleted successfully
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Products deleted successfully
+              count:
+                type: integer
+                example: 3
+    '400':
+      description: Invalid request body
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '401':
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '403':
+      description: Forbidden - Admin access required
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

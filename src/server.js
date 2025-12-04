@@ -1,49 +1,63 @@
-require('dotenv').config();
-const express = require('express');
-const swaggerUi = require('swagger-ui-express');
-const yaml = require('js-yaml');
-const fs = require('fs');
-const path = require('path');
-const $RefParser = require('json-refs');
+import 'dotenv/config';
+import app from './app.js';
+import { ENV } from './config/env.js';
+import cron from 'node-cron';
+import { cleanupExpiredReservations } from './services/stock.service.js';
 
-const app = express();
+const PORT = ENV.PORT || 3000;
 
-// Middleware básico
-app.use(express.json());
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${ENV.PORT}`);
+  console.log(`🌍 Environment: ${ENV.NODE_ENV}`);
+  console.log(`📄 Docs: http://localhost:${ENV.PORT}/docs`);
 
-// Puerto configurable
-const PORT = process.env.PORT || 3000;
-
-// Endpoint de prueba
-app.get('/api/ping', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    env: process.env.NODE_ENV || 'development'
+  // Schedule cleanup of expired stock reservations every hour
+  cron.schedule('0 * * * *', async () => {
+    console.log(
+      '🧹 Running scheduled cleanup of expired stock reservations...'
+    );
+    try {
+      const result = await cleanupExpiredReservations();
+      console.log(
+        `✅ Cleanup completed: ${result.deletedCount} reservations deleted`
+      );
+    } catch (error) {
+      console.error('❌ Error during scheduled cleanup:', error);
+    }
   });
 });
 
-// Swagger UI setup
-const openApiPath = path.join(__dirname, 'openapi', 'openapi.yaml');
-const openApiDocument = yaml.load(fs.readFileSync(openApiPath, 'utf8'));
-
-// Resolver referencias modulares
-$RefParser.resolveRefs(openApiDocument, {
-  location: openApiPath,
-  loaderOptions: {
-    processContent: (res, callback) => {
-      callback(null, yaml.load(res.text));
-    }
+server.on('error', (error) => {
+  if (error.syscall !== 'listen') {
+    throw error;
   }
-}).then((resolvedSpec) => {
-  app.use('/docs', swaggerUi.serve, swaggerUi.setup(resolvedSpec.resolved));
-}).catch((err) => {
-  console.error('Error al resolver referencias OpenAPI:', err);
+
+  const bind = typeof PORT === 'string' ? 'Pipe ' + PORT : 'Port ' + PORT;
+
+  switch (error.code) {
+    case 'EACCES':
+      console.error(`${bind} requires elevated privileges`);
+      process.exit(1);
+    case 'EADDRINUSE':
+      console.error(`${bind} already in use`);
+      process.exit(1);
+    default:
+      throw error;
+  }
 });
 
-// Iniciar servidor
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en puerto ${PORT}`);
-  console.log(`Documentación disponible en http://localhost:${PORT}/docs`);
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down server...');
+  server.close(() => {
+    console.log('Server closed.');
+  });
 });
 
-module.exports = app;
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down server...');
+  server.close(() => {
+    console.log('Server closed.');
+  });
+});
+
+export default server;

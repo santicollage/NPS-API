@@ -1,0 +1,139 @@
+Order:
+  type: object
+  properties:
+    order_id:
+      type: integer
+      example: 1
+    user_id:
+      type: integer
+      nullable: true
+      example: 1
+    guest_id:
+      type: string
+      nullable: true
+      description: Guest identifier for guest orders
+      example: '550e8400-e29b-41d4-a716-446655440000'
+    order_token:
+      type: string
+      nullable: true
+      description: Token for guest order access
+      example: 'abc123-def456-ghi789'
+    total_amount:
+      type: number
+      format: float
+      example: 90000.00
+    shipping_cost:
+      type: number
+      format: float
+      description: |
+        Shipping cost calculated automatically based on product size and quantity.
+        Small products: base 5,000 COP + 2,000 COP per additional unit.
+        Medium products: base 8,000 COP + 3,000 COP per additional unit.
+        Large products: base 12,000 COP + 5,000 COP per additional unit.
+        This cost is included in total_amount.
+      example: 10000.00
+    status:
+      type: string
+      enum: ['pending', 'paid', 'shipped', 'delivered', 'cancelled']
+      example: 'pending'
+    customer_name:
+      type: string
+      nullable: true
+      description: Customer name for guest orders
+      example: 'Juan Pérez'
+    customer_email:
+      type: string
+      nullable: true
+      description: Customer email for guest orders
+      example: 'juan@email.com'
+    customer_phone:
+      type: string
+      nullable: true
+      description: Customer phone for guest orders
+      example: '+57 300 123 4567'
+    customer_document:
+      type: string
+      nullable: true
+      description: Customer document for guest orders
+      example: '123456789'
+    department:
+      type: string
+      nullable: true
+      description: Shipping department for guest orders
+      example: 'Cundinamarca'
+    city:
+      type: string
+      nullable: true
+      description: Shipping city for guest orders
+      example: 'Bogotá'
+    address_line:
+      type: string
+      nullable: true
+      description: Shipping address for guest orders
+      example: 'Calle 123 #45-67'
+    postal_code:
+      type: string
+      nullable: true
+      description: Postal code for guest orders
+      example: '110111'
+    created_at:
+      type: string
+      format: date-time
+      example: '2023-10-01T12:00:00Z'
+    items:
+      type: array
+      items:
+        $ref: '#/OrderItem'
+  required:
+    - order_id
+    - total_amount
+    - status
+    - created_at
+
+OrderItem:
+  type: object
+  properties:
+    order_item_id:
+      type: integer
+      example: 1
+    order_id:
+      type: integer
+      example: 1
+    product_id:
+      type: integer
+      example: 1
+    quantity:
+      type: integer
+      example: 2
+    unit_price:
+      type: number
+      format: float
+      example: 45000.00
+    subtotal:
+      type: number
+      format: float
+      example: 90000.00
+    product:
+      $ref: './product.yaml#/Product'
+  required:
+    - order_item_id
+    - order_id
+    - product_id
+    - quantity
+    - unit_price
+    - subtotal
+
+OrdersList:
+  type: array
+  items:
+    $ref: '#/Order'
+
+OrderStatusUpdate:
+  type: object
+  properties:
+    status:
+      type: string
+      enum: ['pending', 'paid', 'shipped', 'delivered', 'cancelled']
+      example: 'paid'
+  required:
+    - status
