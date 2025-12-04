@@ -5,6 +5,7 @@ import {
   deleteUser,
   getAllUsers,
   linkGuestResourcesToUser,
+  updateUserRole as updateUserRoleService,
 } from '../services/users.service.js';
 
 /**
@@ -15,8 +16,18 @@ import {
  */
 export const getUsers = async (req, res, next) => {
   try {
-    const { page, limit } = req.query;
-    const result = await getAllUsers(page, limit);
+    const { page, limit, search, role } = req.query;
+
+    // Validate role if provided
+    if (role && role !== 'admin' && role !== 'customer') {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'Invalid role. Must be either "admin" or "customer"',
+        code: 400,
+      });
+    }
+
+    const result = await getAllUsers(page, limit, search, role);
     res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -131,6 +142,48 @@ export const deleteUserAccount = async (req, res, next) => {
         error: 'Not Found',
         message: 'User not found',
         code: 404,
+      });
+    }
+    next(error);
+  }
+};
+
+/**
+ * Update user role (admin only)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+export const updateUserRole = async (req, res, next) => {
+  try {
+    const { user_id } = req.params;
+    const userId = parseInt(user_id, 10);
+    const { role } = req.body;
+
+    // Validate required field
+    if (!role) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'Role is required',
+        code: 400,
+      });
+    }
+
+    const user = await updateUserRoleService(userId, role);
+    res.status(200).json(user);
+  } catch (error) {
+    if (error.message === 'User not found') {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'User not found',
+        code: 404,
+      });
+    }
+    if (error.message === 'Invalid role') {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'Invalid role. Must be either "admin" or "customer"',
+        code: 400,
       });
     }
     next(error);

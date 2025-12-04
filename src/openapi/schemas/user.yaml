@@ -156,3 +156,14 @@ ErrorResponse:
     - error
     - message
     - code
+
+UserRoleUpdate:
+  type: object
+  properties:
+    role:
+      type: string
+      enum: ['customer', 'admin']
+      description: New role for the user
+      example: 'admin'
+  required:
+    - role

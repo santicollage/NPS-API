@@ -30,6 +30,8 @@ paths:
     $ref: './paths/users.yaml'
   /users/{user_id}:
     $ref: './paths/users-user_id.yaml'
+  /users/{user_id}/role:
+    $ref: './paths/users-user_id-role.yaml'
   /auth/login:
     $ref: './paths/auth-login.yaml'
   /auth/logout:
@@ -117,6 +119,8 @@ components:
       $ref: './schemas/user.yaml#/UserCreate'
     UserUpdate:
       $ref: './schemas/user.yaml#/UserUpdate'
+    UserRoleUpdate:
+      $ref: './schemas/user.yaml#/UserRoleUpdate'
     ErrorResponse:
       $ref: './schemas/user.yaml#/ErrorResponse'
     LoginRequest:

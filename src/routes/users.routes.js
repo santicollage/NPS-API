@@ -5,6 +5,7 @@ import {
   getUser,
   updateUserInfo,
   deleteUserAccount,
+  updateUserRole,
 } from '../controllers/users.controller.js';
 import {
   authenticateToken,
@@ -38,6 +39,14 @@ router.delete(
   authenticateToken,
   authorizeOwnResource,
   deleteUserAccount
+);
+
+// PUT /users/:user_id/role - Update user role (requires authentication - admin only)
+router.put(
+  '/:user_id/role',
+  authenticateToken,
+  authorizeRoles(['admin']),
+  updateUserRole
 );
 
 export default router;

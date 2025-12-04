@@ -3,13 +3,44 @@ import prisma from '../config/db.js';
 
 /**
  * Get all users
+ * @param {number} page - Page number
+ * @param {number} limit - Items per page
+ * @param {string} search - Search by name or email
+ * @param {string} role - Filter by role (admin or customer)
  * @returns {Promise<Object>} Object containing users array and total count
  */
-export const getAllUsers = async (page = 1, limit = 20) => {
+export const getAllUsers = async (page = 1, limit = 20, search, role) => {
   const skip = (page - 1) * limit;
+
+  // Build where clause for filtering
+  const where = {};
+
+  // Add search filter (name or email)
+  if (search && search.trim() !== '') {
+    where.OR = [
+      {
+        name: {
+          contains: search.trim(),
+          mode: 'insensitive',
+        },
+      },
+      {
+        email: {
+          contains: search.trim(),
+          mode: 'insensitive',
+        },
+      },
+    ];
+  }
+
+  // Add role filter
+  if (role && (role === 'admin' || role === 'customer')) {
+    where.role = role;
+  }
 
   const [users, total] = await Promise.all([
     prisma.user.findMany({
+      where,
       select: {
         user_id: true,
         name: true,
@@ -31,7 +62,7 @@ export const getAllUsers = async (page = 1, limit = 20) => {
       skip,
       take: limit,
     }),
-    prisma.user.count(),
+    prisma.user.count({ where }),
   ]);
 
   return {
@@ -315,4 +346,49 @@ export const linkGuestResourcesToUser = async (userId, guestId) => {
     console.error('Error linking guest resources to user:', error);
     return { carts: 0, orders: 0, payments: 0 };
   }
+};
+
+/**
+ * Update user role (admin only)
+ * @param {number} userId - User ID
+ * @param {string} newRole - New role ('admin' or 'customer')
+ * @returns {Promise<Object>} Updated user object
+ */
+export const updateUserRole = async (userId, newRole) => {
+  // Validate role
+  if (newRole !== 'admin' && newRole !== 'customer') {
+    throw new Error('Invalid role');
+  }
+
+  // Check if user exists
+  const user = await prisma.user.findUnique({
+    where: { user_id: userId },
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Update user role
+  const updatedUser = await prisma.user.update({
+    where: { user_id: userId },
+    data: { role: newRole },
+    select: {
+      user_id: true,
+      name: true,
+      email: true,
+      google_id: true,
+      phone: true,
+      city: true,
+      department: true,
+      address_line: true,
+      postal_code: true,
+      image_url: true,
+      role: true,
+      created_at: true,
+      updated_at: true,
+    },
+  });
+
+  return updatedUser;
 };

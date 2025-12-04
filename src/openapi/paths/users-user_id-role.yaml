@@ -1,0 +1,65 @@
+put:
+  summary: Update user role
+  description: |
+    Update the role of a user (admin only). This endpoint allows administrators to grant or revoke
+    admin privileges to/from users.
+    
+    **Note:** Only administrators can access this endpoint.
+  tags:
+    - Users
+  security:
+    - bearerAuth: []
+  parameters:
+    - in: path
+      name: user_id
+      required: true
+      schema:
+        type: integer
+      description: User ID
+      example: 5
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/user.yaml#/UserRoleUpdate'
+        example:
+          role: 'admin'
+  responses:
+    '200':
+      description: User role updated successfully
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/User'
+    '400':
+      description: Bad request - Invalid role or missing field
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+          examples:
+            missingRole:
+              summary: Missing role field
+              value:
+                error: 'Bad Request'
+                message: 'Role is required'
+                code: 400
+            invalidRole:
+              summary: Invalid role value
+              value:
+                error: 'Bad Request'
+                message: 'Invalid role. Must be either "admin" or "customer"'
+                code: 400
+    '403':
+      description: Forbidden - User is not an admin
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '404':
+      description: User not found
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
