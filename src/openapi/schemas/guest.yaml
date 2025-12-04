@@ -1,0 +1,52 @@
+GuestCartCreate:
+  type: object
+  properties:
+    guest_id:
+      type: string
+      description: Guest identifier (UUID)
+      example: '550e8400-e29b-41d4-a716-446655440000'
+  required:
+    - guest_id
+
+GuestOrderCreate:
+  type: object
+  properties:
+    guest_id:
+      type: string
+      description: Guest identifier
+      example: '550e8400-e29b-41d4-a716-446655440000'
+    customer_name:
+      type: string
+      example: 'Juan Pérez'
+    customer_email:
+      type: string
+      format: email
+      example: 'juan@email.com'
+    customer_phone:
+      type: string
+      example: '+57 300 123 4567'
+    customer_document:
+      type: string
+      example: '123456789'
+    department:
+      type: string
+      example: 'Cundinamarca'
+    city:
+      type: string
+      example: 'Bogotá'
+    address_line:
+      type: string
+      example: 'Calle 123 #45-67'
+    postal_code:
+      type: string
+      example: '110111'
+  required:
+    - guest_id
+    - customer_name
+    - customer_email
+    - customer_phone
+    - customer_document
+    - department
+    - city
+    - address_line
+    - postal_code

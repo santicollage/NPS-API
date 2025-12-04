@@ -1,0 +1,82 @@
+LoginRequest:
+  type: object
+  properties:
+    email:
+      type: string
+      format: email
+      example: 'juan.perez@example.com'
+    password:
+      type: string
+      example: 'password123'
+    guest_id:
+      type: string
+      description: |
+        Optional guest identifier. If provided, any active carts and non-cancelled orders
+        associated with this guest_id will be automatically linked to the authenticated user account.
+      minLength: 8
+      maxLength: 64
+      pattern: '^[a-zA-Z0-9-]+$'
+      example: '550e8400-e29b-41d4-a716-446655440000'
+  required:
+    - email
+    - password
+
+LoginResponse:
+  type: object
+  properties:
+    token:
+      type: string
+      description: JWT access token
+      example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+    user:
+      $ref: './user.yaml#/User'
+  required:
+    - token
+    - user
+  description: |
+    The refresh token is sent as an HttpOnly cookie named 'refresh_token' and is not included in the response body.
+    This cookie is automatically sent by the browser on subsequent requests to /auth/refresh.
+
+GoogleAuthRequest:
+  type: object
+  description: |
+    Either `token` or `id_token` must be provided. Both fields accept the Google OAuth ID token.
+  properties:
+    token:
+      type: string
+      description: Google OAuth ID token (alternative to `id_token`)
+      example: 'ya29.a0AfH6SMC...'
+    id_token:
+      type: string
+      description: Google OAuth ID token (alternative to `token`)
+      example: 'ya29.a0AfH6SMC...'
+    guest_id:
+      type: string
+      description: |
+        Optional guest identifier. If provided, any active carts and non-cancelled orders
+        associated with this guest_id will be automatically linked to the authenticated user account.
+      minLength: 8
+      maxLength: 64
+      pattern: '^[a-zA-Z0-9-]+$'
+      example: '550e8400-e29b-41d4-a716-446655440000'
+  # Note: At least one of token or id_token must be provided, but OpenAPI doesn't support oneOf in required
+  # The backend validates that at least one is present
+
+LogoutResponse:
+  type: object
+  properties:
+    message:
+      type: string
+      example: 'Logged out successfully'
+  required:
+    - message
+
+RefreshTokenResponse:
+  type: object
+  properties:
+    token:
+      type: string
+      description: New JWT access token
+      example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+  required:
+    - token

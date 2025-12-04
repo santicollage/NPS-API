@@ -1,0 +1,47 @@
+patch:
+  summary: Update order status
+  description: Change order status (paid, shipped, etc.) (admin only).
+  tags:
+    - Orders
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: order_id
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 1
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/order.yaml#/OrderStatusUpdate'
+        example:
+          status: 'paid'
+  responses:
+    '200':
+      description: Status updated
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/order.yaml#/Order'
+    '400':
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '403':
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '404':
+      description: Order not found
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

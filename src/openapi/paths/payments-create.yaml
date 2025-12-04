@@ -1,0 +1,56 @@
+post:
+  summary: Create payment transaction
+  description: |
+    Create transaction in PayU, register in payments table with pending status.
+    This endpoint does not require authentication and supports both authenticated users and guest users.
+    For guest orders, include the `guest_id` parameter to validate access to the order.
+    Currency is fixed to COP (Colombian Pesos) as the application only operates in Colombia.
+  tags:
+    - Payments
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/payment.yaml#/PaymentCreateRequest'
+        examples:
+          authenticated_user:
+            summary: Authenticated user payment
+            value:
+              order_id: 1
+          guest_user:
+            summary: Guest user payment
+            value:
+              order_id: 1
+              guest_id: '550e8400-e29b-41d4-a716-446655440000'
+  responses:
+    '201':
+      description: Payment created
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/payment.yaml#/PaymentCreateResponse'
+    '400':
+      description: Bad request (e.g., order already has a payment)
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '403':
+      description: Forbidden (invalid guest access to order)
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '404':
+      description: Order not found
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '500':
+      description: Internal server error (PayU service unavailable or failed to create transaction)
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

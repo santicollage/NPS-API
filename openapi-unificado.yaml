@@ -1,0 +1,2835 @@
+openapi: 3.1.0
+info:
+  title: NPS Diesel API
+  description: 'API RESTful para la plataforma de comercio electrónico de **NPS DIESEL S.A.S**. Permite la gestión de usuarios, productos, pedidos, pagos e inventario, con autenticación JWT y conexión a Wompi. Soporta tanto usuarios registrados como invitados (guest checkout). Las reservas de stock se crean al confirmar órdenes y se confirman o liberan según el resultado del pago.'
+  version: 1.0.0
+  contact:
+    name: Equipo de Desarrollo NPS DIESEL
+    email: santiagourregolaya@gmail.com
+    url: 'https://npsdiesel.com'
+servers:
+  - url: 'http://localhost:3000/api/v1'
+    description: Servidor local de desarrollo
+  - url: 'https://staging.npsdiesel.com/api/v1'
+    description: Servidor de staging (preproducción)
+  - url: 'https://api.npsdiesel.com/v1'
+    description: Servidor de producción
+paths:
+  /ping:
+    get:
+      summary: Health check endpoint
+      description: Returns the status of the API and current environment
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PingResponse'
+  /users:
+    get:
+      summary: Get all users
+      description: Get a list of all users (admin only).
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+          description: Items per page
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  total:
+                    type: integer
+                    example: 10
+                required:
+                  - users
+                  - total
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Register a new user
+      description: |
+        Register a new customer user in the database. Creates user_id, encrypts password.
+
+        If a `guest_id` is provided, any active carts and non-cancelled orders associated with that guest_id
+        will be automatically linked to the newly created user account.
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+            example:
+              name: Juan Pérez
+              email: juan.perez@example.com
+              password: password123
+              guest_id: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  '/users/{user_id}':
+    get:
+      summary: Get user details
+      description: Get the authenticated user's data or the specified user's data (admin only).
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: User data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      summary: Update user information
+      description: Update the authenticated user's information or specified user's information (admin only).
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+            example:
+              name: Juan Pérez Actualizado
+              email: juan.actualizado@example.com
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete user
+      description: Delete a user (admin only).
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User deleted successfully
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/login:
+    post:
+      summary: User login
+      description: |
+        Login with email and password, generates JWT access token and refresh token.
+        The refresh token is automatically set as an HttpOnly cookie named 'refresh_token'.
+
+        If a `guest_id` is provided, any active carts and non-cancelled orders associated with that guest_id
+        will be automatically linked to the authenticated user account.
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: juan.perez@example.com
+              password: password123
+              guest_id: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/logout:
+    post:
+      summary: User logout
+      description: |
+        Logout and remove refresh token from server side and clear the refresh_token cookie.
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/me:
+    get:
+      summary: Get authenticated user data
+      description: Returns data of the authenticated user from JWT.
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/google:
+    post:
+      summary: Google OAuth login/register
+      description: |
+        Automatic login or register using Google OAuth (google_id).
+        Generates JWT access token and refresh token.
+        The refresh token is automatically set as an HttpOnly cookie named 'refresh_token'.
+
+        If a `guest_id` is provided, any active carts and non-cancelled orders associated with that guest_id
+        will be automatically linked to the authenticated user account.
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleAuthRequest'
+            example:
+              token: ya29.a0AfH6SMC...
+              guest_id: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      description: |
+        Generate a new access token using the refresh token stored in an HttpOnly cookie.
+        The refresh token is automatically sent by the browser and does not need to be included in the request body.
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: New access token generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+              example:
+                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '400':
+          description: Refresh token is required (cookie not found)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /categories:
+    get:
+      summary: List all categories
+      description: List all available categories.
+      tags:
+        - Categories
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoriesList'
+    post:
+      summary: Create new category
+      description: Create a new category (admin only).
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryCreate'
+            example:
+              name: Aceites y Lubricantes
+              description: Productos para el mantenimiento de motores diésel
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  '/categories/{category_id}':
+    patch:
+      summary: Update category
+      description: Edit category name or description (admin only).
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryUpdate'
+            example:
+              name: Aceites y Lubricantes Premium
+              description: Descripción actualizada
+      responses:
+        '200':
+          description: Category updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete category
+      description: Delete a category (admin only).
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Category deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Category deleted successfully
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /products:
+    get:
+      summary: List products
+      description: 'List all products. Allows filtering by category, name, price range and sorting.'
+      tags:
+        - Products
+      parameters:
+        - name: category_id
+          in: query
+          schema:
+            type: integer
+          example: 1
+          description: Filter by category ID
+        - name: name
+          in: query
+          schema:
+            type: string
+          example: aceite
+          description: Filter by product name (partial match)
+        - name: min_price
+          in: query
+          schema:
+            type: number
+            format: float
+          example: 20000
+          description: Minimum price filter
+        - name: max_price
+          in: query
+          schema:
+            type: number
+            format: float
+          example: 100000
+          description: Maximum price filter
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum:
+              - price
+              - stock_quantity
+              - name
+              - created_at
+            default: created_at
+          example: price
+          description: Sort field
+        - name: sort_order
+          in: query
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+          example: asc
+          description: Sort order
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          example: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          example: 20
+          description: Items per page
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductsList'
+    post:
+      summary: Create product
+      description: Create a new product (admin only).
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+            example:
+              category_ids:
+                - 1
+                - 2
+              image_urls:
+                - 'https://example.com/images/aceite-15w40-1.jpg'
+                - 'https://example.com/images/aceite-15w40-2.jpg'
+              name: Aceite Diésel 15W40
+              description: Aceite mineral para motores diésel de alto rendimiento
+              price: 45000
+              size: medium
+              stock_quantity: 100
+              reference: REF-001
+      responses:
+        '201':
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  '/products/{product_id}':
+    get:
+      summary: Get product details
+      description: 'Show product details, including visible stock (real - reserved).'
+      tags:
+        - Products
+      parameters:
+        - name: product_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Product details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      summary: Update product
+      description: 'Update product information (price, description, image, stock) (admin only).'
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: product_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdate'
+            example:
+              name: Aceite Diésel 15W40 Premium
+              price: 50000
+              stock_quantity: 150
+              image_urls:
+                - 'https://example.com/images/aceite-premium-1.jpg'
+                - 'https://example.com/images/aceite-premium-2.jpg'
+      responses:
+        '200':
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete product
+      description: Delete a product (admin only).
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: product_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Product deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Product deleted successfully
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /products/bulk:
+    delete:
+      summary: Bulk delete products
+      description: Delete multiple products by their IDs (soft delete). Only accessible by admins.
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_ids
+              properties:
+                product_ids:
+                  type: array
+                  items:
+                    type: integer
+                  description: Array of product IDs to delete
+                  example:
+                    - 1
+                    - 2
+                    - 3
+      responses:
+        '200':
+          description: Products deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Products deleted successfully
+                  count:
+                    type: integer
+                    example: 3
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /products/bulk/visibility:
+    patch:
+      summary: Bulk update product visibility
+      description: Update visibility status for multiple products. Only accessible by admins.
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_ids
+                - visible
+              properties:
+                product_ids:
+                  type: array
+                  items:
+                    type: integer
+                  description: Array of product IDs to update
+                  example:
+                    - 1
+                    - 2
+                    - 3
+                visible:
+                  type: boolean
+                  description: New visibility status
+                  example: true
+      responses:
+        '200':
+          description: Products visibility updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Products visibility updated successfully
+                  count:
+                    type: integer
+                    example: 3
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /cart:
+    get:
+      summary: Get active cart
+      description: 'Return the active cart of the user (status = ''active''). If it doesn''t exist, create it.'
+      tags:
+        - Cart
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Active cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+  /cart/items:
+    post:
+      summary: Add product to cart
+      description: Add product to cart. Creates/updates cart_items and generates automatic reservation in stock_reservations with expires_at.
+      tags:
+        - Cart
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemCreate'
+            example:
+              product_id: 1
+              quantity: 2
+      responses:
+        '201':
+          description: Item added to cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartItem'
+        '400':
+          description: Bad request (insufficient stock)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  '/cart/items/{cart_item_id}':
+    patch:
+      summary: Update cart item quantity
+      description: Update quantity of product in cart. Adjusts corresponding reservation.
+      tags:
+        - Cart
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cart_item_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemUpdate'
+            example:
+              quantity: 3
+      responses:
+        '200':
+          description: Item updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartItem'
+        '400':
+          description: Bad request (insufficient stock)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Cart item not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Remove item from cart
+      description: Remove a product from cart. Releases associated reservation.
+      tags:
+        - Cart
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cart_item_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Item removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Item removed from cart
+        '404':
+          description: Cart item not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /cart/abandon:
+    post:
+      summary: Abandon cart
+      description: Mark cart as "abandoned" manually (optional).
+      tags:
+        - Cart
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cart abandoned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Cart marked as abandoned
+  /cart/guest:
+    post:
+      summary: Create guest cart
+      description: Create a new cart for a guest user (no authentication required).
+      tags:
+        - Cart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuestCartCreate'
+            example:
+              guest_id: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '201':
+          description: Guest cart created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cart:
+                    $ref: '#/components/schemas/Cart'
+                  guest_id:
+                    type: string
+                    example: 550e8400-e29b-41d4-a716-446655440000
+                required:
+                  - cart
+                  - guest_id
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  '/cart/guest/{guest_id}':
+    get:
+      summary: Get guest cart
+      description: Get active cart for a guest user (no authentication required).
+      tags:
+        - Cart
+      parameters:
+        - name: guest_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Guest cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '404':
+          description: Cart not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  '/cart/guest/{guest_id}/items':
+    post:
+      summary: Add product to guest cart
+      description: Add product to guest cart. Creates/updates cart_items and generates automatic reservation in stock_reservations with expires_at.
+      tags:
+        - Cart
+      parameters:
+        - name: guest_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemCreate'
+            example:
+              product_id: 1
+              quantity: 2
+      responses:
+        '201':
+          description: Item added to guest cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartItem'
+        '400':
+          description: Bad request (insufficient stock)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  '/cart/guest/{guest_id}/items/{cart_item_id}':
+    patch:
+      summary: Update guest cart item quantity
+      description: Update quantity of product in guest cart. Adjusts corresponding reservation.
+      tags:
+        - Cart
+      parameters:
+        - name: guest_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+        - name: cart_item_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemUpdate'
+            example:
+              quantity: 3
+      responses:
+        '200':
+          description: Guest cart item updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartItem'
+        '400':
+          description: Bad request (insufficient stock)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Cart item not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Remove item from guest cart
+      description: Remove a product from guest cart. Releases associated reservation.
+      tags:
+        - Cart
+      parameters:
+        - name: guest_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+        - name: cart_item_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Item removed from guest cart
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Item removed from cart
+        '404':
+          description: Cart item not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  '/cart/guest/{guest_id}/abandon':
+    post:
+      summary: Abandon guest cart
+      description: Mark guest cart as "abandoned" manually (optional).
+      tags:
+        - Cart
+      parameters:
+        - name: guest_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Guest cart abandoned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Cart marked as abandoned
+  /stock/movements:
+    get:
+      summary: Get stock movements history
+      description: 'Return stock movements history (entries, exits, releases, sales).'
+      tags:
+        - Stock
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: product_id
+          in: query
+          schema:
+            type: integer
+          example: 1
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum:
+              - entry
+              - exit
+          example: entry
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          example: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+          example: 50
+      responses:
+        '200':
+          description: Stock movements
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockMovementsList'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Create stock movement
+      description: 'Create manual stock movement (e.g., physical inventory entry).'
+      tags:
+        - Stock
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StockMovementCreate'
+            example:
+              product_id: 1
+              type: entry
+              quantity: 50
+              reason: Compra de inventario físico
+      responses:
+        '201':
+          description: Movement created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockMovement'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /stock/cleanup:
+    post:
+      summary: Cleanup expired reservations
+      description: Clean expired reservations (expires_at < NOW()) and register "RESERVATION_EXPIRED" movement.
+      tags:
+        - Stock
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cleanup completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleanupResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /stock/reservations:
+    get:
+      summary: List active reservations
+      description: List active reservations created from confirmed orders (admin or debugging only).
+      tags:
+        - Stock
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Active reservations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockReservationsList'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /orders:
+    post:
+      summary: Create order from cart
+      description: |
+        Create order from active cart. Generates order_items and creates stock_reservations for 24 hours. 
+        Stock is deducted only when payment is approved.
+        Shipping cost is automatically calculated based on product size (small, medium, large) and quantity, 
+        and is included in the total_amount. The shipping_cost field in the response shows the calculated shipping cost.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customer_name:
+                  type: string
+                  example: Juan Pérez
+                customer_email:
+                  type: string
+                  format: email
+                  example: juan@example.com
+                customer_phone:
+                  type: string
+                  example: +57 300 123 4567
+                customer_document:
+                  type: string
+                  example: '1234567890'
+                department:
+                  type: string
+                  example: Cundinamarca
+                city:
+                  type: string
+                  example: Bogotá
+                address_line:
+                  type: string
+                  example: 'Calle 123 #45-67'
+                postal_code:
+                  type: string
+                  example: '110111'
+              required:
+                - customer_name
+                - customer_email
+                - customer_phone
+                - customer_document
+                - department
+                - city
+                - address_line
+      tags:
+        - Orders
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: Bad request (empty cart or insufficient stock)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: List user orders
+      description: List authenticated user's orders (or all if admin).
+      tags:
+        - Orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - pending
+              - paid
+              - shipped
+              - delivered
+              - cancelled
+          example: pending
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          example: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          example: 20
+        - name: search
+          in: query
+          description: Search by customer name or email
+          schema:
+            type: string
+          example: Juan
+        - name: startDate
+          in: query
+          description: Filter by creation date (start)
+          schema:
+            type: string
+            format: date-time
+          example: '2023-01-01T00:00:00Z'
+        - name: endDate
+          in: query
+          description: Filter by creation date (end)
+          schema:
+            type: string
+            format: date-time
+          example: '2023-12-31T23:59:59Z'
+        - name: minPrice
+          in: query
+          description: Filter by minimum total amount
+          schema:
+            type: number
+          example: 10000
+        - name: maxPrice
+          in: query
+          description: Filter by maximum total amount
+          schema:
+            type: number
+          example: 500000
+        - name: sortBy
+          in: query
+          description: Field to sort by
+          schema:
+            type: string
+            enum:
+              - created_at
+              - price
+              - name
+            default: created_at
+          example: created_at
+        - name: sortOrder
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+          example: desc
+      responses:
+        '200':
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrdersList'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  '/orders/{order_id}':
+    get:
+      summary: Get order details
+      description: Get complete order details and products.
+      tags:
+        - Orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  '/orders/{order_id}/status':
+    patch:
+      summary: Update order status
+      description: 'Change order status (paid, shipped, etc.) (admin only).'
+      tags:
+        - Orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderStatusUpdate'
+            example:
+              status: paid
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /orders/guest:
+    post:
+      summary: Create guest order from cart
+      description: |
+        Create order from guest cart. Generates order_items and creates stock_reservations for 24 hours. 
+        Stock is deducted only when payment is approved. Requires customer information.
+        Shipping cost is automatically calculated based on product size (small, medium, large) and quantity, 
+        and is included in the total_amount. The shipping_cost field in the response shows the calculated shipping cost.
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuestOrderCreate'
+            example:
+              guest_id: 550e8400-e29b-41d4-a716-446655440000
+              customer_name: Juan Pérez
+              customer_email: juan@email.com
+              customer_phone: +57 300 123 4567
+              customer_document: '123456789'
+              department: Cundinamarca
+              city: Bogotá
+              address_line: 'Calle 123 #45-67'
+              postal_code: '110111'
+      responses:
+        '201':
+          description: Guest order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: Bad request (empty cart or insufficient stock)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  '/orders/guest/{order_token}':
+    get:
+      summary: Get guest order details
+      description: Get complete guest order details and products using order token (no authentication required).
+      tags:
+        - Orders
+      parameters:
+        - name: order_token
+          in: path
+          required: true
+          schema:
+            type: string
+          example: abc123-def456-ghi789
+      responses:
+        '200':
+          description: Guest order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /payments/create:
+    post:
+      summary: Create payment transaction
+      description: |
+        Create transaction in PayU, register in payments table with pending status.
+        This endpoint does not require authentication and supports both authenticated users and guest users.
+        For guest orders, include the `guest_id` parameter to validate access to the order.
+        Currency is fixed to COP (Colombian Pesos) as the application only operates in Colombia.
+      tags:
+        - Payments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentCreateRequest'
+            examples:
+              authenticated_user:
+                summary: Authenticated user payment
+                value:
+                  order_id: 1
+              guest_user:
+                summary: Guest user payment
+                value:
+                  order_id: 1
+                  guest_id: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '201':
+          description: Payment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentCreateResponse'
+        '400':
+          description: 'Bad request (e.g., order already has a payment)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (invalid guest access to order)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error (PayU service unavailable or failed to create transaction)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /payments/webhook:
+    post:
+      summary: Payment webhook
+      description: Endpoint to receive payment confirmation from PayU (updates payments.status and orders.status).
+      tags:
+        - Payments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookPayload'
+            example:
+              state_pol: '4'
+              transaction_id: txn_123456789
+              reference_pol: REF123456
+              reference_sale: order_1_1234567890
+              value: 90000
+              currency: COP
+      responses:
+        '200':
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+        '400':
+          description: Invalid webhook data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  '/payments/{order_id}':
+    get:
+      summary: Check payment status
+      description: Check payment status of an order.
+      tags:
+        - Payments
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Payment status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /jobs/cleanup-reservations:
+    post:
+      summary: Manual cleanup of reservations
+      description: Execute manual cleanup of expired order reservations (if no cron external).
+      tags:
+        - Jobs
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cleanup executed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Cleanup completed successfully
+                  cleaned_reservations:
+                    type: integer
+                    example: 5
+                required:
+                  - message
+                  - cleaned_reservations
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /jobs/health:
+    get:
+      summary: System health check
+      description: Check system and scheduler status.
+      tags:
+        - Jobs
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    PingResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        env:
+          type: string
+          example: development
+      required:
+        - status
+        - env
+    User:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Juan Pérez
+        email:
+          type: string
+          format: email
+          example: juan.perez@example.com
+        google_id:
+          type: string
+          example: '123456789'
+        phone:
+          type: string
+          example: +57 300 123 4567
+        city:
+          type: string
+          example: Bogotá
+        department:
+          type: string
+          example: Cundinamarca
+        address_line:
+          type: string
+          example: 'Calle 123 #45-67'
+        postal_code:
+          type: string
+          example: '110111'
+        image_url:
+          type: string
+          format: uri
+          example: 'https://example.com/images/profile.jpg'
+        role:
+          type: string
+          enum:
+            - customer
+            - admin
+          example: customer
+        created_at:
+          type: string
+          format: date-time
+          example: '2023-10-01T12:00:00Z'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2023-10-01T12:00:00Z'
+      required:
+        - user_id
+        - name
+        - email
+        - role
+        - created_at
+        - updated_at
+    UserCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Juan Pérez
+        email:
+          type: string
+          format: email
+          example: juan.perez@example.com
+        password:
+          type: string
+          minLength: 8
+          example: password123
+        phone:
+          type: string
+          example: +57 300 123 4567
+        city:
+          type: string
+          example: Bogotá
+        department:
+          type: string
+          example: Cundinamarca
+        address_line:
+          type: string
+          example: 'Calle 123 #45-67'
+        postal_code:
+          type: string
+          example: '110111'
+        image_url:
+          type: string
+          format: uri
+          example: 'https://example.com/images/profile.jpg'
+        role:
+          type: string
+          enum:
+            - customer
+            - admin
+          default: customer
+          example: customer
+        guest_id:
+          type: string
+          description: |
+            Optional guest identifier. If provided, any active carts and non-cancelled orders
+            associated with this guest_id will be automatically linked to the newly created user account.
+          minLength: 8
+          maxLength: 64
+          pattern: '^[a-zA-Z0-9-]+$'
+          example: 550e8400-e29b-41d4-a716-446655440000
+      required:
+        - name
+        - email
+        - password
+    UserUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Juan Pérez Actualizado
+        email:
+          type: string
+          format: email
+          example: juan.actualizado@example.com
+        phone:
+          type: string
+          example: +57 300 123 4567
+        city:
+          type: string
+          example: Bogotá
+        department:
+          type: string
+          example: Cundinamarca
+        address_line:
+          type: string
+          example: 'Calle 123 #45-67'
+        postal_code:
+          type: string
+          example: '110111'
+        image_url:
+          type: string
+          format: uri
+          example: 'https://example.com/images/profile.jpg'
+        role:
+          type: string
+          enum:
+            - customer
+            - admin
+          example: admin
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Invalid input
+        message:
+          type: string
+          example: The provided email is already in use
+        code:
+          type: integer
+          example: 400
+      required:
+        - error
+        - message
+        - code
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: juan.perez@example.com
+        password:
+          type: string
+          example: password123
+        guest_id:
+          type: string
+          description: |
+            Optional guest identifier. If provided, any active carts and non-cancelled orders
+            associated with this guest_id will be automatically linked to the authenticated user account.
+          minLength: 8
+          maxLength: 64
+          pattern: '^[a-zA-Z0-9-]+$'
+          example: 550e8400-e29b-41d4-a716-446655440000
+      required:
+        - email
+        - password
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT access token
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          $ref: '#/components/schemas/User'
+      required:
+        - token
+        - user
+      description: |
+        The refresh token is sent as an HttpOnly cookie named 'refresh_token' and is not included in the response body.
+        This cookie is automatically sent by the browser on subsequent requests to /auth/refresh.
+    GoogleAuthRequest:
+      type: object
+      description: |
+        Either `token` or `id_token` must be provided. Both fields accept the Google OAuth ID token.
+      properties:
+        token:
+          type: string
+          description: Google OAuth ID token (alternative to `id_token`)
+          example: ya29.a0AfH6SMC...
+        id_token:
+          type: string
+          description: Google OAuth ID token (alternative to `token`)
+          example: ya29.a0AfH6SMC...
+        guest_id:
+          type: string
+          description: |
+            Optional guest identifier. If provided, any active carts and non-cancelled orders
+            associated with this guest_id will be automatically linked to the authenticated user account.
+          minLength: 8
+          maxLength: 64
+          pattern: '^[a-zA-Z0-9-]+$'
+          example: 550e8400-e29b-41d4-a716-446655440000
+    LogoutResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Logged out successfully
+      required:
+        - message
+    RefreshTokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: New JWT access token
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      required:
+        - token
+    Category:
+      type: object
+      properties:
+        category_id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Aceites y Lubricantes
+        description:
+          type: string
+          example: Productos para el mantenimiento de motores diésel
+      required:
+        - category_id
+        - name
+    CategoryCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Aceites y Lubricantes
+        description:
+          type: string
+          example: Productos para el mantenimiento de motores diésel
+      required:
+        - name
+    CategoryUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Aceites y Lubricantes Actualizados
+        description:
+          type: string
+          example: Descripción actualizada
+    CategoriesList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Category'
+    Product:
+      type: object
+      properties:
+        product_id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Aceite Diésel 15W40
+        description:
+          type: string
+          example: Aceite mineral para motores diésel de alto rendimiento
+        price:
+          type: number
+          format: float
+          example: 45000
+        size:
+          type: string
+          enum:
+            - extra_small
+            - small
+            - medium
+            - large
+            - extra_large
+          example: medium
+        stock_quantity:
+          type: integer
+          example: 100
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+          example:
+            - 'https://example.com/images/aceite-15w40-1.jpg'
+            - 'https://example.com/images/aceite-15w40-2.jpg'
+        reference:
+          type: string
+          example: REF-001
+        visible:
+          type: boolean
+          example: true
+        active:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          example: '2023-10-01T12:00:00Z'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+      required:
+        - product_id
+        - name
+        - price
+        - size
+        - stock_quantity
+        - created_at
+        - categories
+        - visible
+        - active
+        - images
+    ProductCreate:
+      type: object
+      properties:
+        category_ids:
+          type: array
+          items:
+            type: integer
+          example:
+            - 1
+            - 2
+          description: Optional array of category IDs
+        image_urls:
+          type: array
+          items:
+            type: string
+            format: uri
+          example:
+            - 'https://example.com/images/aceite-15w40-1.jpg'
+            - 'https://example.com/images/aceite-15w40-2.jpg'
+          description: Optional array of image URLs
+        name:
+          type: string
+          example: Aceite Diésel 15W40
+        description:
+          type: string
+          example: Aceite mineral para motores diésel de alto rendimiento
+        price:
+          type: number
+          format: float
+          example: 45000
+        size:
+          $ref: '#/components/schemas/Product/properties/size'
+        stock_quantity:
+          type: integer
+          example: 100
+        reference:
+          type: string
+          example: REF-001
+      required:
+        - name
+        - price
+        - size
+        - stock_quantity
+    ProductUpdate:
+      type: object
+      properties:
+        category_ids:
+          type: array
+          items:
+            type: integer
+          example:
+            - 1
+            - 3
+        image_urls:
+          type: array
+          items:
+            type: string
+            format: uri
+          example:
+            - 'https://example.com/images/aceite-premium-1.jpg'
+            - 'https://example.com/images/aceite-premium-2.jpg'
+            - 'https://example.com/images/aceite-premium-3.jpg'
+          description: Array of image URLs (replaces all existing images)
+        name:
+          type: string
+          example: Aceite Diésel 15W40 Premium
+        description:
+          type: string
+          example: Descripción actualizada
+        price:
+          type: number
+          format: float
+          example: 50000
+        size:
+          $ref: '#/components/schemas/Product/properties/size'
+        stock_quantity:
+          type: integer
+          example: 150
+        reference:
+          type: string
+          example: REF-001-UPDATED
+        visible:
+          type: boolean
+          example: false
+    ProductsList:
+      type: object
+      properties:
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 20
+            total:
+              type: integer
+              example: 100
+            totalPages:
+              type: integer
+              example: 5
+          required:
+            - page
+            - limit
+            - total
+            - totalPages
+      required:
+        - products
+        - pagination
+    Cart:
+      type: object
+      properties:
+        cart_id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          nullable: true
+          example: 1
+        guest_id:
+          type: string
+          nullable: true
+          description: Guest identifier for guest carts
+          example: 550e8400-e29b-41d4-a716-446655440000
+        status:
+          type: string
+          enum:
+            - active
+            - ordered
+            - abandoned
+          example: active
+        shipping_cost:
+          type: number
+          format: float
+          example: 15000
+        created_at:
+          type: string
+          format: date-time
+          example: '2023-10-01T12:00:00Z'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2023-10-01T12:30:00Z'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+      required:
+        - cart_id
+        - status
+        - created_at
+        - updated_at
+    CartItem:
+      type: object
+      properties:
+        cart_item_id:
+          type: integer
+          example: 1
+        cart_id:
+          type: integer
+          example: 1
+        product_id:
+          type: integer
+          example: 1
+        quantity:
+          type: integer
+          example: 2
+        reserved_until:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2023-10-01T13:00:00Z'
+        created_at:
+          type: string
+          format: date-time
+          example: '2023-10-01T12:00:00Z'
+        product:
+          $ref: '#/components/schemas/Product'
+      required:
+        - cart_item_id
+        - cart_id
+        - product_id
+        - quantity
+        - created_at
+    CartItemCreate:
+      type: object
+      properties:
+        product_id:
+          type: integer
+          example: 1
+        quantity:
+          type: integer
+          minimum: 1
+          example: 2
+      required:
+        - product_id
+        - quantity
+    CartItemUpdate:
+      type: object
+      properties:
+        quantity:
+          type: integer
+          minimum: 1
+          example: 3
+      required:
+        - quantity
+    StockMovement:
+      type: object
+      properties:
+        movement_id:
+          type: integer
+          example: 1
+        product_id:
+          type: integer
+          example: 1
+        type:
+          type: string
+          enum:
+            - entry
+            - exit
+          example: entry
+        quantity:
+          type: integer
+          example: 50
+        reason:
+          type: string
+          example: Compra de inventario
+        created_at:
+          type: string
+          format: date-time
+          example: '2023-10-01T12:00:00Z'
+      required:
+        - movement_id
+        - product_id
+        - type
+        - quantity
+        - created_at
+    StockMovementCreate:
+      type: object
+      properties:
+        product_id:
+          type: integer
+          example: 1
+        type:
+          type: string
+          enum:
+            - entry
+            - exit
+          example: entry
+        quantity:
+          type: integer
+          minimum: 1
+          example: 50
+        reason:
+          type: string
+          example: Compra de inventario
+      required:
+        - product_id
+        - type
+        - quantity
+    StockMovementsList:
+      type: array
+      items:
+        $ref: '#/components/schemas/StockMovement'
+    StockReservation:
+      type: object
+      properties:
+        reservation_id:
+          type: integer
+          example: 1
+        cart_id:
+          type: integer
+          example: 1
+        product_id:
+          type: integer
+          example: 1
+        quantity:
+          type: integer
+          example: 2
+        expires_at:
+          type: string
+          format: date-time
+          example: '2023-10-01T13:00:00Z'
+        created_at:
+          type: string
+          format: date-time
+          example: '2023-10-01T12:00:00Z'
+      required:
+        - reservation_id
+        - cart_id
+        - product_id
+        - quantity
+        - expires_at
+        - created_at
+    StockReservationsList:
+      type: array
+      items:
+        $ref: '#/components/schemas/StockReservation'
+    CleanupResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Cleanup completed successfully
+        cleaned_reservations:
+          type: integer
+          example: 5
+          description: Number of expired order reservations cleaned up
+      required:
+        - message
+        - cleaned_reservations
+    Order:
+      type: object
+      properties:
+        order_id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          nullable: true
+          example: 1
+        guest_id:
+          type: string
+          nullable: true
+          description: Guest identifier for guest orders
+          example: 550e8400-e29b-41d4-a716-446655440000
+        order_token:
+          type: string
+          nullable: true
+          description: Token for guest order access
+          example: abc123-def456-ghi789
+        total_amount:
+          type: number
+          format: float
+          example: 90000
+        shipping_cost:
+          type: number
+          format: float
+          description: |
+            Shipping cost calculated automatically based on product size and quantity.
+            Small products: base 5,000 COP + 2,000 COP per additional unit.
+            Medium products: base 8,000 COP + 3,000 COP per additional unit.
+            Large products: base 12,000 COP + 5,000 COP per additional unit.
+            This cost is included in total_amount.
+          example: 10000
+        status:
+          type: string
+          enum:
+            - pending
+            - paid
+            - shipped
+            - delivered
+            - cancelled
+          example: pending
+        customer_name:
+          type: string
+          nullable: true
+          description: Customer name for guest orders
+          example: Juan Pérez
+        customer_email:
+          type: string
+          nullable: true
+          description: Customer email for guest orders
+          example: juan@email.com
+        customer_phone:
+          type: string
+          nullable: true
+          description: Customer phone for guest orders
+          example: +57 300 123 4567
+        customer_document:
+          type: string
+          nullable: true
+          description: Customer document for guest orders
+          example: '123456789'
+        department:
+          type: string
+          nullable: true
+          description: Shipping department for guest orders
+          example: Cundinamarca
+        city:
+          type: string
+          nullable: true
+          description: Shipping city for guest orders
+          example: Bogotá
+        address_line:
+          type: string
+          nullable: true
+          description: Shipping address for guest orders
+          example: 'Calle 123 #45-67'
+        postal_code:
+          type: string
+          nullable: true
+          description: Postal code for guest orders
+          example: '110111'
+        created_at:
+          type: string
+          format: date-time
+          example: '2023-10-01T12:00:00Z'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+      required:
+        - order_id
+        - total_amount
+        - status
+        - created_at
+    OrderItem:
+      type: object
+      properties:
+        order_item_id:
+          type: integer
+          example: 1
+        order_id:
+          type: integer
+          example: 1
+        product_id:
+          type: integer
+          example: 1
+        quantity:
+          type: integer
+          example: 2
+        unit_price:
+          type: number
+          format: float
+          example: 45000
+        subtotal:
+          type: number
+          format: float
+          example: 90000
+        product:
+          $ref: '#/components/schemas/Product'
+      required:
+        - order_item_id
+        - order_id
+        - product_id
+        - quantity
+        - unit_price
+        - subtotal
+    OrdersList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Order'
+    OrderStatusUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - pending
+            - paid
+            - shipped
+            - delivered
+            - cancelled
+          example: paid
+      required:
+        - status
+    Payment:
+      type: object
+      properties:
+        payment_id:
+          type: integer
+          example: 1
+        order_id:
+          type: integer
+          nullable: true
+          example: 1
+        guest_id:
+          type: string
+          nullable: true
+          description: Guest identifier for guest payments
+          example: 550e8400-e29b-41d4-a716-446655440000
+        payu_transaction_id:
+          type: string
+          example: txn_123456789
+        amount:
+          type: number
+          format: float
+          example: 90000
+        currency:
+          type: string
+          example: COP
+        status:
+          type: string
+          enum:
+            - pending
+            - approved
+            - declined
+            - error
+          example: pending
+        method:
+          type: string
+          example: credit_card
+        created_at:
+          type: string
+          format: date-time
+          example: '2023-10-01T12:00:00Z'
+      required:
+        - payment_id
+        - amount
+        - currency
+        - status
+        - created_at
+    PaymentCreateRequest:
+      type: object
+      properties:
+        order_id:
+          type: integer
+          description: Order ID to create payment for
+          example: 1
+        guest_id:
+          type: string
+          description: |
+            Guest identifier for guest orders. Required when creating payment for a guest order.
+            Must match the guest_id of the order to validate access.
+          example: 550e8400-e29b-41d4-a716-446655440000
+      required:
+        - order_id
+    PaymentCreateResponse:
+      type: object
+      properties:
+        payment_id:
+          type: integer
+          example: 1
+        payu_checkout_url:
+          type: string
+          format: uri
+          example: 'https://checkout.payulatam.com/payment/123456'
+        status:
+          type: string
+          example: pending
+        reference_code:
+          type: string
+          description: Payment reference code for tracking
+          example: order_1_1234567890
+      required:
+        - payment_id
+        - payu_checkout_url
+        - status
+    WebhookPayload:
+      type: object
+      description: PayU webhook payload structure
+      properties:
+        state_pol:
+          type: string
+          description: 'Payment state (4=APPROVED, 5=EXPIRED, 6=DECLINED, 7=PENDING)'
+          example: '4'
+        transaction_id:
+          type: string
+          example: txn_123456789
+        reference_pol:
+          type: string
+          example: REF123456
+        reference_sale:
+          type: string
+          description: Order reference code
+          example: order_1_1234567890
+        value:
+          type: number
+          example: 90000
+        currency:
+          type: string
+          example: COP
+      required:
+        - state_pol
+        - transaction_id
+    WebhookResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Webhook processed successfully
+      required:
+        - message
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: healthy
+        timestamp:
+          type: string
+          format: date-time
+          example: '2023-10-01T12:00:00Z'
+        services:
+          type: object
+          properties:
+            database:
+              type: string
+              example: connected
+            redis:
+              type: string
+              example: connected
+            scheduler:
+              type: string
+              example: running
+      required:
+        - status
+        - timestamp
+        - services
+    GuestCartCreate:
+      type: object
+      properties:
+        guest_id:
+          type: string
+          description: Guest identifier (UUID)
+          example: 550e8400-e29b-41d4-a716-446655440000
+      required:
+        - guest_id
+    GuestOrderCreate:
+      type: object
+      properties:
+        guest_id:
+          type: string
+          description: Guest identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        customer_name:
+          type: string
+          example: Juan Pérez
+        customer_email:
+          type: string
+          format: email
+          example: juan@email.com
+        customer_phone:
+          type: string
+          example: +57 300 123 4567
+        customer_document:
+          type: string
+          example: '123456789'
+        department:
+          type: string
+          example: Cundinamarca
+        city:
+          type: string
+          example: Bogotá
+        address_line:
+          type: string
+          example: 'Calle 123 #45-67'
+        postal_code:
+          type: string
+          example: '110111'
+      required:
+        - guest_id
+        - customer_name
+        - customer_email
+        - customer_phone
+        - customer_document
+        - department
+        - city
+        - address_line
+        - postal_code

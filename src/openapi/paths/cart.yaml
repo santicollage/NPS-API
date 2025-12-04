@@ -1,0 +1,14 @@
+get:
+  summary: Get active cart
+  description: Return the active cart of the user (status = 'active'). If it doesn't exist, create it.
+  tags:
+    - Cart
+  security:
+    - bearerAuth: []
+  responses:
+    '200':
+      description: Active cart
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/cart.yaml#/Cart'

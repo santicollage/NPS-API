@@ -1,0 +1,25 @@
+get:
+  summary: Get guest cart
+  description: Get active cart for a guest user (no authentication required).
+  tags:
+    - Cart
+  parameters:
+    - name: guest_id
+      in: path
+      required: true
+      schema:
+        type: string
+      example: '550e8400-e29b-41d4-a716-446655440000'
+  responses:
+    '200':
+      description: Guest cart
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/cart.yaml#/Cart'
+    '404':
+      description: Cart not found
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

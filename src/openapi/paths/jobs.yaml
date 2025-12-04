@@ -1,0 +1,43 @@
+/cleanup-reservations:
+  post:
+    summary: Manual cleanup of reservations
+    description: Execute manual cleanup of expired reservations (if no cron external).
+    tags:
+      - Jobs
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: Cleanup executed
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/job.yaml#/CleanupResponse'
+      '403':
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'
+
+/health:
+  get:
+    summary: System health check
+    description: Check system and scheduler status.
+    tags:
+      - Jobs
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: Health status
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/job.yaml#/HealthResponse'
+      '403':
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'

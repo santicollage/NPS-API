@@ -1,0 +1,31 @@
+post:
+  summary: Payment webhook
+  description: Endpoint to receive payment confirmation from PayU (updates payments.status and orders.status).
+  tags:
+    - Payments
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/payment.yaml#/WebhookPayload'
+        example:
+          state_pol: '4'
+          transaction_id: 'txn_123456789'
+          reference_pol: 'REF123456'
+          reference_sale: 'order_1_1234567890'
+          value: 90000.00
+          currency: 'COP'
+  responses:
+    '200':
+      description: Webhook processed
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/payment.yaml#/WebhookResponse'
+    '400':
+      description: Invalid webhook data
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

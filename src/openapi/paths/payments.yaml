@@ -1,0 +1,107 @@
+/create:
+  post:
+    summary: Create payment transaction
+    description: Create transaction in Wompi, register in payments table with pending status.
+    tags:
+      - Payments
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/payment.yaml#/PaymentCreateRequest'
+          example:
+            order_id: 1
+            amount: 90000.00
+            currency: 'COP'
+    responses:
+      '201':
+        description: Payment created
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/payment.yaml#/PaymentCreateResponse'
+      '400':
+        description: Bad request
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'
+      '404':
+        description: Order not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'
+
+/webhook:
+  post:
+    summary: Payment webhook
+    description: Endpoint to receive payment confirmation from Wompi (updates payments.status and orders.status).
+    tags:
+      - Payments
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/payment.yaml#/WebhookPayload'
+          example:
+            event: 'transaction.updated'
+            data:
+              transaction:
+                id: 'txn_123456789'
+                status: 'APPROVED'
+                amount_in_cents: 9000000
+                currency: 'COP'
+                reference: 'order_123'
+    responses:
+      '200':
+        description: Webhook processed
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/payment.yaml#/WebhookResponse'
+      '400':
+        description: Invalid webhook data
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'
+
+/{order_id}:
+  get:
+    summary: Check payment status
+    description: Check payment status of an order.
+    tags:
+      - Payments
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: order_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        example: 1
+    responses:
+      '200':
+        description: Payment status
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/payment.yaml#/Payment'
+      '403':
+        description: Forbidden
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'
+      '404':
+        description: Payment not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/user.yaml#/ErrorResponse'

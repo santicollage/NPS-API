@@ -1,0 +1,151 @@
+post:
+  summary: Create order from cart
+  description: |
+    Create order from active cart. Generates order_items and creates stock_reservations for 24 hours. 
+    Stock is deducted only when payment is approved.
+    Shipping cost is automatically calculated based on product size (small, medium, large) and quantity, 
+    and is included in the total_amount. The shipping_cost field in the response shows the calculated shipping cost.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            customer_name:
+              type: string
+              example: 'Juan Pérez'
+            customer_email:
+              type: string
+              format: email
+              example: 'juan@example.com'
+            customer_phone:
+              type: string
+              example: '+57 300 123 4567'
+            customer_document:
+              type: string
+              example: '1234567890'
+            department:
+              type: string
+              example: 'Cundinamarca'
+            city:
+              type: string
+              example: 'Bogotá'
+            address_line:
+              type: string
+              example: 'Calle 123 #45-67'
+            postal_code:
+              type: string
+              example: '110111'
+          required:
+            - customer_name
+            - customer_email
+            - customer_phone
+            - customer_document
+            - department
+            - city
+            - address_line
+  tags:
+    - Orders
+  security:
+    - bearerAuth: []
+  responses:
+    '201':
+      description: Order created
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/order.yaml#/Order'
+    '400':
+      description: Bad request (empty cart or insufficient stock)
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+get:
+  summary: List user orders
+  description: List authenticated user's orders (or all if admin).
+  tags:
+    - Orders
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: status
+      in: query
+      schema:
+        type: string
+        enum: ['pending', 'paid', 'shipped', 'delivered', 'cancelled']
+      example: 'pending'
+    - name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+      example: 1
+    - name: limit
+      in: query
+      schema:
+        type: integer
+        default: 20
+      example: 20
+    - name: search
+      in: query
+      description: Search by customer name or email
+      schema:
+        type: string
+      example: 'Juan'
+    - name: startDate
+      in: query
+      description: Filter by creation date (start)
+      schema:
+        type: string
+        format: date-time
+      example: '2023-01-01T00:00:00Z'
+    - name: endDate
+      in: query
+      description: Filter by creation date (end)
+      schema:
+        type: string
+        format: date-time
+      example: '2023-12-31T23:59:59Z'
+    - name: minPrice
+      in: query
+      description: Filter by minimum total amount
+      schema:
+        type: number
+      example: 10000
+    - name: maxPrice
+      in: query
+      description: Filter by maximum total amount
+      schema:
+        type: number
+      example: 500000
+    - name: sortBy
+      in: query
+      description: Field to sort by
+      schema:
+        type: string
+        enum: ['created_at', 'price', 'name']
+        default: 'created_at'
+      example: 'created_at'
+    - name: sortOrder
+      in: query
+      description: Sort order
+      schema:
+        type: string
+        enum: ['asc', 'desc']
+        default: 'desc'
+      example: 'desc'
+  responses:
+    '200':
+      description: List of orders
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/order.yaml#/OrdersList'
+    '403':
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

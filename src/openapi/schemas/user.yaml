@@ -1,0 +1,158 @@
+User:
+  type: object
+  properties:
+    user_id:
+      type: integer
+      example: 1
+    name:
+      type: string
+      example: 'Juan Pérez'
+    email:
+      type: string
+      format: email
+      example: 'juan.perez@example.com'
+    google_id:
+      type: string
+      example: '123456789'
+    phone:
+      type: string
+      example: '+57 300 123 4567'
+    city:
+      type: string
+      example: 'Bogotá'
+    department:
+      type: string
+      example: 'Cundinamarca'
+    address_line:
+      type: string
+      example: 'Calle 123 #45-67'
+    postal_code:
+      type: string
+      example: '110111'
+    image_url:
+      type: string
+      format: uri
+      example: 'https://example.com/images/profile.jpg'
+    role:
+      type: string
+      enum: ['customer', 'admin']
+      example: 'customer'
+    created_at:
+      type: string
+      format: date-time
+      example: '2023-10-01T12:00:00Z'
+    updated_at:
+      type: string
+      format: date-time
+      example: '2023-10-01T12:00:00Z'
+  required:
+    - user_id
+    - name
+    - email
+    - role
+    - created_at
+    - updated_at
+
+UserCreate:
+  type: object
+  properties:
+    name:
+      type: string
+      example: 'Juan Pérez'
+    email:
+      type: string
+      format: email
+      example: 'juan.perez@example.com'
+    password:
+      type: string
+      minLength: 8
+      example: 'password123'
+    phone:
+      type: string
+      example: '+57 300 123 4567'
+    city:
+      type: string
+      example: 'Bogotá'
+    department:
+      type: string
+      example: 'Cundinamarca'
+    address_line:
+      type: string
+      example: 'Calle 123 #45-67'
+    postal_code:
+      type: string
+      example: '110111'
+    image_url:
+      type: string
+      format: uri
+      example: 'https://example.com/images/profile.jpg'
+    role:
+      type: string
+      enum: ['customer', 'admin']
+      default: 'customer'
+      example: 'customer'
+    guest_id:
+      type: string
+      description: |
+        Optional guest identifier. If provided, any active carts and non-cancelled orders
+        associated with this guest_id will be automatically linked to the newly created user account.
+      minLength: 8
+      maxLength: 64
+      pattern: '^[a-zA-Z0-9-]+$'
+      example: '550e8400-e29b-41d4-a716-446655440000'
+  required:
+    - name
+    - email
+    - password
+
+UserUpdate:
+  type: object
+  properties:
+    name:
+      type: string
+      example: 'Juan Pérez Actualizado'
+    email:
+      type: string
+      format: email
+      example: 'juan.actualizado@example.com'
+    phone:
+      type: string
+      example: '+57 300 123 4567'
+    city:
+      type: string
+      example: 'Bogotá'
+    department:
+      type: string
+      example: 'Cundinamarca'
+    address_line:
+      type: string
+      example: 'Calle 123 #45-67'
+    postal_code:
+      type: string
+      example: '110111'
+    image_url:
+      type: string
+      format: uri
+      example: 'https://example.com/images/profile.jpg'
+    role:
+      type: string
+      enum: ['customer', 'admin']
+      example: 'admin'
+  # No required fields for update
+
+ErrorResponse:
+  type: object
+  properties:
+    error:
+      type: string
+      example: 'Invalid input'
+    message:
+      type: string
+      example: 'The provided email is already in use'
+    code:
+      type: integer
+      example: 400
+  required:
+    - error
+    - message
+    - code
