@@ -26,6 +26,8 @@ servers:
 paths:
   /ping:
     $ref: './paths/ping.yaml'
+  /health:
+    $ref: './paths/health.yaml'
   /users:
     $ref: './paths/users.yaml'
   /users/{user_id}:
