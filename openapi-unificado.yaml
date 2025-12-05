@@ -47,6 +47,21 @@ paths:
             type: integer
             default: 20
           description: Items per page
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: 'Search by name or email (case-insensitive, partial match)'
+          example: juan
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum:
+              - admin
+              - customer
+          description: Filter by user role
+          example: customer
       responses:
         '200':
           description: List of users
@@ -229,6 +244,72 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  '/users/{user_id}/role':
+    put:
+      summary: Update user role
+      description: |
+        Update the role of a user (admin only). This endpoint allows administrators to grant or revoke
+        admin privileges to/from users.
+
+        **Note:** Only administrators can access this endpoint.
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          schema:
+            type: integer
+          description: User ID
+          example: 5
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRoleUpdate'
+            example:
+              role: admin
+      responses:
+        '200':
+          description: User role updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad request - Invalid role or missing field
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingRole:
+                  summary: Missing role field
+                  value:
+                    error: Bad Request
+                    message: Role is required
+                    code: 400
+                invalidRole:
+                  summary: Invalid role value
+                  value:
+                    error: Bad Request
+                    message: Invalid role. Must be either "admin" or "customer"
+                    code: 400
+        '403':
+          description: Forbidden - User is not an admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /auth/login:
     post:
       summary: User login
@@ -365,6 +446,84 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/change-password:
+    put:
+      summary: Change user password
+      description: |
+        Change the password for an authenticated user. Requires the current password for verification.
+
+        **Note:** This endpoint is only available for users who have a password set. Users who registered
+        via Google OAuth and have not set a password cannot use this endpoint.
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+            example:
+              current_password: oldPassword123
+              new_password: newSecurePassword456
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangePasswordResponse'
+        '400':
+          description: Bad request - Invalid input or Google OAuth user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingFields:
+                  summary: Missing required fields
+                  value:
+                    error:
+                      message: Current password and new password are required
+                      status: 400
+                passwordTooShort:
+                  summary: New password too short
+                  value:
+                    error:
+                      message: New password must be at least 6 characters long
+                      status: 400
+                googleUser:
+                  summary: Google OAuth user
+                  value:
+                    error:
+                      message: Cannot change password. This account uses Google authentication.
+                      status: 400
+        '401':
+          description: Unauthorized - Invalid current password or missing/invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidPassword:
+                  summary: Invalid current password
+                  value:
+                    error:
+                      message: Current password is incorrect
+                      status: 401
+                noToken:
+                  summary: Missing authentication token
+                  value:
+                    error:
+                      message: No token provided
+                      status: 401
+        '404':
+          description: User not found
           content:
             application/json:
               schema:
@@ -1982,6 +2141,18 @@ components:
             - customer
             - admin
           example: admin
+    UserRoleUpdate:
+      type: object
+      properties:
+        role:
+          type: string
+          enum:
+            - customer
+            - admin
+          description: New role for the user
+          example: admin
+      required:
+        - role
     ErrorResponse:
       type: object
       properties:
@@ -2074,6 +2245,30 @@ components:
           example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
       required:
         - token
+    ChangePasswordRequest:
+      type: object
+      properties:
+        current_password:
+          type: string
+          description: Current password for verification
+          minLength: 1
+          example: oldPassword123
+        new_password:
+          type: string
+          description: New password (minimum 6 characters)
+          minLength: 6
+          example: newSecurePassword456
+      required:
+        - current_password
+        - new_password
+    ChangePasswordResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Password changed successfully
+      required:
+        - message
     Category:
       type: object
       properties:

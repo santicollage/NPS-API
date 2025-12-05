@@ -26,10 +26,14 @@ servers:
 paths:
   /ping:
     $ref: './paths/ping.yaml'
+  /health:
+    $ref: './paths/health.yaml'
   /users:
     $ref: './paths/users.yaml'
   /users/{user_id}:
     $ref: './paths/users-user_id.yaml'
+  /users/{user_id}/role:
+    $ref: './paths/users-user_id-role.yaml'
   /auth/login:
     $ref: './paths/auth-login.yaml'
   /auth/logout:
@@ -40,6 +44,8 @@ paths:
     $ref: './paths/auth-google.yaml'
   /auth/refresh:
     $ref: './paths/auth-refresh.yaml'
+  /auth/change-password:
+    $ref: './paths/auth-change-password.yaml'
   /categories:
     $ref: './paths/categories.yaml'
   /categories/{category_id}:
@@ -115,6 +121,8 @@ components:
       $ref: './schemas/user.yaml#/UserCreate'
     UserUpdate:
       $ref: './schemas/user.yaml#/UserUpdate'
+    UserRoleUpdate:
+      $ref: './schemas/user.yaml#/UserRoleUpdate'
     ErrorResponse:
       $ref: './schemas/user.yaml#/ErrorResponse'
     LoginRequest:
@@ -127,6 +135,10 @@ components:
       $ref: './schemas/auth.yaml#/LogoutResponse'
     RefreshTokenResponse:
       $ref: './schemas/auth.yaml#/RefreshTokenResponse'
+    ChangePasswordRequest:
+      $ref: './schemas/auth.yaml#/ChangePasswordRequest'
+    ChangePasswordResponse:
+      $ref: './schemas/auth.yaml#/ChangePasswordResponse'
     Category:
       $ref: './schemas/category.yaml#/Category'
     CategoryCreate:

@@ -18,6 +18,7 @@ Thumbs.db
 # Directorios de control de versiones
 .git
 .gitignore
+.env
 
 # Archivos de logs y bases de datos locales
 *.log
