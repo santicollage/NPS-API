@@ -4,6 +4,7 @@ import {
   logoutUser,
   getAuthenticatedUser,
   refreshAccessToken,
+  changePassword as changePasswordService,
 } from '../services/auth.service.js';
 import { ENV } from '../config/env.js';
 
@@ -211,6 +212,74 @@ export const getMe = async (req, res, next) => {
         error: {
           message: 'User not found',
           status: 404,
+        },
+      });
+    }
+    next(error);
+  }
+};
+
+/**
+ * Change user password
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+export const changePassword = async (req, res, next) => {
+  try {
+    const { user_id } = req.user;
+    const { current_password, new_password } = req.body;
+
+    // Validate required fields
+    if (!current_password || !new_password) {
+      return res.status(400).json({
+        error: {
+          message: 'Current password and new password are required',
+          status: 400,
+        },
+      });
+    }
+
+    // Validate new password length
+    if (new_password.length < 6) {
+      return res.status(400).json({
+        error: {
+          message: 'New password must be at least 6 characters long',
+          status: 400,
+        },
+      });
+    }
+
+    const result = await changePasswordService(
+      user_id,
+      current_password,
+      new_password
+    );
+
+    res.status(200).json(result);
+  } catch (error) {
+    if (error.message === 'User not found') {
+      return res.status(404).json({
+        error: {
+          message: 'User not found',
+          status: 404,
+        },
+      });
+    }
+    if (error.message === 'No password set') {
+      return res.status(400).json({
+        error: {
+          message:
+            'Cannot change password. This account uses Google authentication.',
+          status: 400,
+        },
+      });
+    }
+    if (error.message === 'Invalid current password') {
+      return res.status(401).json({
+        error: {
+          message: 'Current password is incorrect',
+          status: 401,
         },
       });
     }

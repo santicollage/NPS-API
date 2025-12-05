@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: nps-api
+    env: docker
+    plan: free
+    buildCommand: docker build -t nps-api .
+    startCommand: docker run -p 3000:3000 nps-api
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: NODE_ENV
+        value: production
+    healthCheckPath: /health
