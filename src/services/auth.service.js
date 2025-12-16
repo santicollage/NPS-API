@@ -1,5 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import prisma from '../config/db.js';
 import {
   generateAccessToken,
@@ -10,6 +12,36 @@ import { ENV } from '../config/env.js';
 import { linkGuestResourcesToUser } from './users.service.js';
 
 const googleClient = new OAuth2Client(ENV.GOOGLE_CLIENT_ID);
+
+const s3Client = new S3Client({
+  region: ENV.S3_REGION,
+  credentials: {
+    accessKeyId: ENV.S3_ACCESS_KEY_ID,
+    secretAccessKey: ENV.S3_SECRET_ACCESS_KEY,
+  },
+});
+
+/**
+ * Generate a presigned URL for S3 upload
+ * @param {string} fileName - Name of the file
+ * @param {string} fileType - MIME type of the file
+ * @returns {Promise<Object>} Presigned URL and file key
+ */
+export const generatePresignedUrl = async (fileName, fileType) => {
+  const key = `${Date.now()}-${fileName}`;
+  const command = new PutObjectCommand({
+    Bucket: ENV.S3_BUCKET_NAME,
+    Key: key,
+    ContentType: fileType,
+  });
+
+  const url = await getSignedUrl(s3Client, command, { expiresIn: 900 }); // 15 minutes
+
+  return {
+    url,
+    key,
+  };
+};
 
 /**
  * Login with email and password

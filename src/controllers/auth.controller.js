@@ -5,6 +5,7 @@ import {
   getAuthenticatedUser,
   refreshAccessToken,
   changePassword as changePasswordService,
+  generatePresignedUrl as generatePresignedUrlService,
 } from '../services/auth.service.js';
 import { ENV } from '../config/env.js';
 
@@ -286,3 +287,34 @@ export const changePassword = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Generate presigned URL for S3 upload
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+export const getPresignedUrl = async (req, res, next) => {
+  try {
+    const { fileName, fileType } = req.body;
+
+    if (!fileName || !fileType) {
+      return res.status(400).json({
+        error: {
+          message: 'fileName and fileType are required',
+          status: 400,
+        },
+      });
+    }
+
+    const { url, key } = await generatePresignedUrlService(
+      fileName,
+      fileType
+    );
+
+    res.status(200).json({ url, key });
+  } catch (error) {
+    next(error);
+  }
+};
+

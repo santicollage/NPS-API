@@ -46,6 +46,8 @@ paths:
     $ref: './paths/auth-refresh.yaml'
   /auth/change-password:
     $ref: './paths/auth-change-password.yaml'
+  /auth/presigned-url:
+    $ref: './paths/auth-presigned-url.yaml'
   /categories:
     $ref: './paths/categories.yaml'
   /categories/{category_id}:
@@ -139,6 +141,10 @@ components:
       $ref: './schemas/auth.yaml#/ChangePasswordRequest'
     ChangePasswordResponse:
       $ref: './schemas/auth.yaml#/ChangePasswordResponse'
+    PresignedUrlRequest:
+      $ref: './schemas/auth.yaml#/PresignedUrlRequest'
+    PresignedUrlResponse:
+      $ref: './schemas/auth.yaml#/PresignedUrlResponse'
     Category:
       $ref: './schemas/category.yaml#/Category'
     CategoryCreate:

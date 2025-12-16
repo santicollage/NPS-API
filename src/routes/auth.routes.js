@@ -6,6 +6,7 @@ import {
   getMe,
   refreshToken,
   changePassword,
+  getPresignedUrl,
 } from '../controllers/auth.controller.js';
 import { authenticateToken } from '../middlewares/auth.middleware.js';
 import { validateOptionalGuestId } from '../middlewares/guest.middleware.js';
@@ -29,5 +30,8 @@ router.get('/me', authenticateToken, getMe);
 
 // PUT /auth/change-password - Change user password (requires authentication)
 router.put('/change-password', authenticateToken, changePassword);
+
+// POST /auth/presigned-url - Get S3 presigned URL (requires authentication)
+router.post('/presigned-url', authenticateToken, getPresignedUrl);
 
 export default router;
