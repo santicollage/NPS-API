@@ -16,6 +16,16 @@ export const getStatsSummary = async ({ from, to }) => {
     where.created_at = {};
     if (from) where.created_at.gte = new Date(from);
     if (to) where.created_at.lte = new Date(to);
+  } else {
+    // Default to last month
+    const end = new Date();
+    const start = new Date();
+    start.setMonth(start.getMonth() - 1);
+    
+    where.created_at = {
+      gte: start,
+      lte: end,
+    };
   }
 
   const [totalSalesResult, totalOrders, totalCustomers] = await Promise.all([
@@ -38,6 +48,16 @@ export const getStatsSummary = async ({ from, to }) => {
     cartWhere.created_at = {};
     if (from) cartWhere.created_at.gte = new Date(from);
     if (to) cartWhere.created_at.lte = new Date(to);
+  } else {
+    // Default to last month
+    const end = new Date();
+    const start = new Date();
+    start.setMonth(start.getMonth() - 1);
+    
+    cartWhere.created_at = {
+      gte: start,
+      lte: end,
+    };
   }
   
   const totalCarts = await prisma.cart.count({ where: cartWhere });
