@@ -580,6 +580,90 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /auth/forgot-password:
+    post:
+      summary: Solicitar restablecimiento de contraseña
+      description: Envía un correo con un enlace para restablecer la contraseña si el correo existe en el sistema.
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: usuario@example.com
+      responses:
+        '200':
+          description: Solicitud procesada correctamente (se envía correo si existe el usuario)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'If the email exists, a password reset link has been sent.'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Demasiadas solicitudes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/reset-password:
+    post:
+      summary: Restablecer contraseña
+      description: Permite cambiar la contraseña utilizando un token válido.
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - newPassword
+              properties:
+                token:
+                  type: string
+                  description: Token recibido en el correo
+                  example: 3982472...
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: NuevaContrasena123!
+      responses:
+        '200':
+          description: Contraseña actualizada correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Password has been reset successfully.
+        '400':
+          description: 'Token inválido, expirado o datos incorrectos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /categories:
     get:
       summary: List all categories

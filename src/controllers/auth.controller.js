@@ -6,6 +6,8 @@ import {
   refreshAccessToken,
   changePassword as changePasswordService,
   generatePresignedUrl as generatePresignedUrlService,
+  requestPasswordReset as requestPasswordResetService,
+  resetPassword as resetPasswordService,
 } from '../services/auth.service.js';
 import { ENV } from '../config/env.js';
 
@@ -318,3 +320,69 @@ export const getPresignedUrl = async (req, res, next) => {
   }
 };
 
+
+/**
+ * Request password reset
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        error: {
+          message: 'Email is required',
+          status: 400,
+        },
+      });
+    }
+
+    await requestPasswordResetService(email);
+
+    res.status(200).json({
+      message: 'If the email exists, a password reset link has been sent.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Reset password
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+export const resetPassword = async (req, res, next) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({
+        error: {
+          message: 'Token and new password are required',
+          status: 400,
+        },
+      });
+    }
+
+    await resetPasswordService(token, newPassword);
+
+    res.status(200).json({
+      message: 'Password has been reset successfully.',
+    });
+  } catch (error) {
+    if (error.message === 'Invalid or expired token') {
+      return res.status(400).json({
+        error: {
+          message: 'Invalid or expired token',
+          status: 400,
+        },
+      });
+    }
+    next(error);
+  }
+};

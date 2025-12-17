@@ -30,6 +30,7 @@ model User {
 
   carts  Cart[]
   orders Order[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
 }
@@ -239,4 +240,18 @@ enum PaymentStatus {
   approved
   declined
   error
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    Int
+  tokenHash String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [user_id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@map("password_reset_tokens")
 }

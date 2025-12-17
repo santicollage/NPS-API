@@ -48,6 +48,10 @@ paths:
     $ref: './paths/auth-change-password.yaml'
   /auth/presigned-url:
     $ref: './paths/auth-presigned-url.yaml'
+  /auth/forgot-password:
+    $ref: './paths/auth-forgot-password.yaml'
+  /auth/reset-password:
+    $ref: './paths/auth-reset-password.yaml'
   /categories:
     $ref: './paths/categories.yaml'
   /categories/{category_id}:
