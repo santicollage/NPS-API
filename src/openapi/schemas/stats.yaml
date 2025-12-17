@@ -1,0 +1,121 @@
+StatsSummary:
+  type: object
+  properties:
+    totalSales:
+      type: number
+      format: double
+      description: Total sales amount
+    totalOrders:
+      type: integer
+      description: Total number of paid orders
+    averageTicket:
+      type: number
+      format: double
+      description: Average order value
+    totalCustomers:
+      type: integer
+      description: Total number of registered customers
+    conversionRate:
+      type: number
+      format: float
+      description: Conversion rate (orders / carts)
+    averagePurchaseTimeMinutes:
+      type: number
+      format: float
+      description: Average time from cart creation to order payment in minutes
+  required:
+    - totalSales
+    - totalOrders
+    - averageTicket
+    - totalCustomers
+    - conversionRate
+    - averagePurchaseTimeMinutes
+
+SalesData:
+  type: array
+  items:
+    type: object
+    properties:
+      date:
+        type: string
+        format: date
+        description: Date of the sales period
+      total:
+        type: number
+        format: double
+        description: Total sales for the period
+    required:
+      - date
+      - total
+
+TopProduct:
+  type: object
+  properties:
+    productId:
+      type: integer
+      description: Product ID
+    name:
+      type: string
+      description: Product name
+    unitsSold:
+      type: integer
+      description: Number of units sold
+    revenue:
+      type: number
+      format: double
+      description: Total revenue from this product
+  required:
+    - productId
+    - name
+    - unitsSold
+    - revenue
+
+TopProductsList:
+  type: array
+  items:
+    $ref: '#/TopProduct'
+
+CustomerStats:
+  type: object
+  properties:
+    totalRegistered:
+      type: integer
+      description: Total number of registered customers
+    newThisMonth:
+      type: integer
+      description: Number of new customers registered this month
+    recurrentCustomers:
+      type: integer
+      description: Number of customers with 2 or more paid orders
+  required:
+    - totalRegistered
+    - newThisMonth
+    - recurrentCustomers
+
+ConversionStats:
+  type: object
+  properties:
+    totalCarts:
+      type: integer
+      description: Total number of carts created
+    totalOrders:
+      type: integer
+      description: Total number of paid orders
+    conversionRate:
+      type: number
+      format: float
+      description: Conversion rate (orders / carts)
+  required:
+    - totalCarts
+    - totalOrders
+    - conversionRate
+
+PurchaseTimeStats:
+  type: object
+  properties:
+    averageMinutes:
+      type: number
+      format: float
+      description: Average time from cart creation to order payment in minutes
+  required:
+    - averageMinutes

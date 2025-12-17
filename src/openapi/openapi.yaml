@@ -112,6 +112,18 @@ paths:
     $ref: './paths/jobs-cleanup-reservations.yaml'
   /jobs/health:
     $ref: './paths/jobs-health.yaml'
+  /stats/summary:
+    $ref: './paths/stats-summary.yaml'
+  /stats/sales:
+    $ref: './paths/stats-sales.yaml'
+  /stats/top-products:
+    $ref: './paths/stats-top-products.yaml'
+  /stats/customers:
+    $ref: './paths/stats-customers.yaml'
+  /stats/conversion:
+    $ref: './paths/stats-conversion.yaml'
+  /stats/purchase-time:
+    $ref: './paths/stats-purchase-time.yaml'
 components:
   securitySchemes:
     bearerAuth:
@@ -209,3 +221,15 @@ components:
       $ref: './schemas/guest.yaml#/GuestCartCreate'
     GuestOrderCreate:
       $ref: './schemas/guest.yaml#/GuestOrderCreate'
+    StatsSummary:
+      $ref: './schemas/stats.yaml#/StatsSummary'
+    SalesData:
+      $ref: './schemas/stats.yaml#/SalesData'
+    TopProductsList:
+      $ref: './schemas/stats.yaml#/TopProductsList'
+    CustomerStats:
+      $ref: './schemas/stats.yaml#/CustomerStats'
+    ConversionStats:
+      $ref: './schemas/stats.yaml#/ConversionStats'
+    PurchaseTimeStats:
+      $ref: './schemas/stats.yaml#/PurchaseTimeStats'

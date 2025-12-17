@@ -2114,6 +2114,214 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /stats/summary:
+    get:
+      summary: Obtener resumen general de estadísticas
+      description: 'Devuelve métricas generales como ventas totales, pedidos, ticket promedio, clientes totales, tasa de conversión y tiempo promedio de compra.'
+      tags:
+        - Stats
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date
+          description: Fecha de inicio (YYYY-MM-DD)
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date
+          description: Fecha de fin (YYYY-MM-DD)
+      responses:
+        '200':
+          description: Resumen obtenido correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsSummary'
+        '401':
+          description: No autenticado
+        '403':
+          description: No autorizado (solo administradores)
+        '500':
+          description: Error del servidor
+  /stats/sales:
+    get:
+      summary: Obtener ventas por período
+      description: Devuelve un listado de ventas agrupadas por día o mes.
+      tags:
+        - Stats
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: groupBy
+          schema:
+            type: string
+            enum:
+              - day
+              - month
+            default: day
+          description: Agrupar por día o mes
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date
+          description: Fecha de inicio (YYYY-MM-DD)
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date
+          description: Fecha de fin (YYYY-MM-DD)
+      responses:
+        '200':
+          description: Ventas obtenidas correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesData'
+        '400':
+          description: Parámetros inválidos
+        '401':
+          description: No autenticado
+        '403':
+          description: No autorizado (solo administradores)
+        '500':
+          description: Error del servidor
+  /stats/top-products:
+    get:
+      summary: Obtener productos más vendidos
+      description: Devuelve los productos con mayor número de unidades vendidas y revenue generado.
+      tags:
+        - Stats
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 5
+          description: Número de productos a devolver
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date
+          description: Fecha de inicio (YYYY-MM-DD)
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date
+          description: Fecha de fin (YYYY-MM-DD)
+      responses:
+        '200':
+          description: Productos obtenidos correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopProductsList'
+        '401':
+          description: No autenticado
+        '403':
+          description: No autorizado (solo administradores)
+        '500':
+          description: Error del servidor
+  /stats/customers:
+    get:
+      summary: Obtener estadísticas de clientes
+      description: 'Devuelve métricas sobre los clientes registrados, nuevos del mes y recurrentes.'
+      tags:
+        - Stats
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Estadísticas obtenidas correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerStats'
+        '401':
+          description: No autenticado
+        '403':
+          description: No autorizado (solo administradores)
+        '500':
+          description: Error del servidor
+  /stats/conversion:
+    get:
+      summary: Obtener estadísticas de conversión
+      description: Devuelve la tasa de conversión de carritos a pedidos pagados.
+      tags:
+        - Stats
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date
+          description: Fecha de inicio (YYYY-MM-DD)
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date
+          description: Fecha de fin (YYYY-MM-DD)
+      responses:
+        '200':
+          description: Estadísticas obtenidas correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversionStats'
+        '401':
+          description: No autenticado
+        '403':
+          description: No autorizado (solo administradores)
+        '500':
+          description: Error del servidor
+  /stats/purchase-time:
+    get:
+      summary: Obtener tiempo promedio de compra
+      description: Devuelve el tiempo promedio transcurrido entre la creación del carrito y el pago del pedido.
+      tags:
+        - Stats
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date
+          description: Fecha de inicio (YYYY-MM-DD)
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date
+          description: Fecha de fin (YYYY-MM-DD)
+      responses:
+        '200':
+          description: Estadísticas obtenidas correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseTimeStats'
+        '401':
+          description: No autenticado
+        '403':
+          description: No autorizado (solo administradores)
+        '500':
+          description: Error del servidor
 components:
   securitySchemes:
     bearerAuth:
@@ -3192,3 +3400,116 @@ components:
         - city
         - address_line
         - postal_code
+    StatsSummary:
+      type: object
+      properties:
+        totalSales:
+          type: number
+          format: double
+          description: Total sales amount
+        totalOrders:
+          type: integer
+          description: Total number of paid orders
+        averageTicket:
+          type: number
+          format: double
+          description: Average order value
+        totalCustomers:
+          type: integer
+          description: Total number of registered customers
+        conversionRate:
+          type: number
+          format: float
+          description: Conversion rate (orders / carts)
+        averagePurchaseTimeMinutes:
+          type: number
+          format: float
+          description: Average time from cart creation to order payment in minutes
+      required:
+        - totalSales
+        - totalOrders
+        - averageTicket
+        - totalCustomers
+        - conversionRate
+        - averagePurchaseTimeMinutes
+    SalesData:
+      type: array
+      items:
+        type: object
+        properties:
+          date:
+            type: string
+            format: date
+            description: Date of the sales period
+          total:
+            type: number
+            format: double
+            description: Total sales for the period
+        required:
+          - date
+          - total
+    TopProductsList:
+      type: array
+      items:
+        type: object
+        properties:
+          productId:
+            type: integer
+            description: Product ID
+          name:
+            type: string
+            description: Product name
+          unitsSold:
+            type: integer
+            description: Number of units sold
+          revenue:
+            type: number
+            format: double
+            description: Total revenue from this product
+        required:
+          - productId
+          - name
+          - unitsSold
+          - revenue
+    CustomerStats:
+      type: object
+      properties:
+        totalRegistered:
+          type: integer
+          description: Total number of registered customers
+        newThisMonth:
+          type: integer
+          description: Number of new customers registered this month
+        recurrentCustomers:
+          type: integer
+          description: Number of customers with 2 or more paid orders
+      required:
+        - totalRegistered
+        - newThisMonth
+        - recurrentCustomers
+    ConversionStats:
+      type: object
+      properties:
+        totalCarts:
+          type: integer
+          description: Total number of carts created
+        totalOrders:
+          type: integer
+          description: Total number of paid orders
+        conversionRate:
+          type: number
+          format: float
+          description: Conversion rate (orders / carts)
+      required:
+        - totalCarts
+        - totalOrders
+        - conversionRate
+    PurchaseTimeStats:
+      type: object
+      properties:
+        averageMinutes:
+          type: number
+          format: float
+          description: Average time from cart creation to order payment in minutes
+      required:
+        - averageMinutes
