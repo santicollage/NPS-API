@@ -1,5 +1,8 @@
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import prisma from '../config/db.js';
 import {
   generateAccessToken,
@@ -8,8 +11,39 @@ import {
 } from '../utils/jwt.js';
 import { ENV } from '../config/env.js';
 import { linkGuestResourcesToUser } from './users.service.js';
+import { sendPasswordResetEmail } from './email.service.js';
 
 const googleClient = new OAuth2Client(ENV.GOOGLE_CLIENT_ID);
+
+const s3Client = new S3Client({
+  region: ENV.S3_REGION,
+  credentials: {
+    accessKeyId: ENV.S3_ACCESS_KEY_ID,
+    secretAccessKey: ENV.S3_SECRET_ACCESS_KEY,
+  },
+});
+
+/**
+ * Generate a presigned URL for S3 upload
+ * @param {string} fileName - Name of the file
+ * @param {string} fileType - MIME type of the file
+ * @returns {Promise<Object>} Presigned URL and file key
+ */
+export const generatePresignedUrl = async (fileName, fileType) => {
+  const key = `${Date.now()}-${fileName}`;
+  const command = new PutObjectCommand({
+    Bucket: ENV.S3_BUCKET_NAME,
+    Key: key,
+    ContentType: fileType,
+  });
+
+  const url = await getSignedUrl(s3Client, command, { expiresIn: 900 }); // 15 minutes
+
+  return {
+    url,
+    key,
+  };
+};
 
 /**
  * Login with email and password
@@ -354,4 +388,96 @@ export const changePassword = async (userId, currentPassword, newPassword) => {
   return {
     message: 'Password changed successfully',
   };
+};
+
+/**
+ * Request password reset
+ * @param {string} email - User email
+ * @returns {Promise<void>}
+ */
+export const requestPasswordReset = async (email) => {
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { user_id: true, name: true, email: true },
+  });
+
+  // Always return success even if user doesn't exist (security)
+  if (!user) {
+    return;
+  }
+
+  // Generate random token
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  const tokenHash = await bcrypt.hash(resetToken, 10);
+
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+
+  // Invalidate previous tokens
+  await prisma.passwordResetToken.updateMany({
+    where: { userId: user.user_id, used: false },
+    data: { used: true },
+  });
+
+  // Save new token
+  await prisma.passwordResetToken.create({
+    data: {
+      userId: user.user_id,
+      tokenHash,
+      expiresAt,
+    },
+  });
+
+  // Send email
+  await sendPasswordResetEmail(user.email, user.name, resetToken);
+};
+
+/**
+ * Reset password
+ * @param {string} token - Reset token
+ * @param {string} newPassword - New password
+ * @returns {Promise<void>}
+ */
+export const resetPassword = async (token, newPassword) => {
+  // Find all valid tokens (not used, not expired)
+  const activeTokens = await prisma.passwordResetToken.findMany({
+    where: {
+      used: false,
+      expiresAt: { gt: new Date() },
+    },
+    include: { user: true },
+  });
+
+  let validTokenRecord = null;
+
+  for (const record of activeTokens) {
+    const isValid = await bcrypt.compare(token, record.tokenHash);
+    if (isValid) {
+      validTokenRecord = record;
+      break;
+    }
+  }
+
+  if (!validTokenRecord) {
+    throw new Error('Invalid or expired token');
+  }
+
+  const user = validTokenRecord.user;
+
+  // Hash new password
+  const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+  // Update user password and invalidate sessions (optional but requested)
+  await prisma.user.update({
+    where: { user_id: user.user_id },
+    data: {
+      password_hash: newPasswordHash,
+      refresh_token: null, // Invalidate sessions
+    },
+  });
+
+  // Mark token as used
+  await prisma.passwordResetToken.update({
+    where: { id: validTokenRecord.id },
+    data: { used: true },
+  });
 };

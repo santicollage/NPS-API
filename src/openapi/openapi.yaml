@@ -46,6 +46,12 @@ paths:
     $ref: './paths/auth-refresh.yaml'
   /auth/change-password:
     $ref: './paths/auth-change-password.yaml'
+  /auth/presigned-url:
+    $ref: './paths/auth-presigned-url.yaml'
+  /auth/forgot-password:
+    $ref: './paths/auth-forgot-password.yaml'
+  /auth/reset-password:
+    $ref: './paths/auth-reset-password.yaml'
   /categories:
     $ref: './paths/categories.yaml'
   /categories/{category_id}:
@@ -106,6 +112,18 @@ paths:
     $ref: './paths/jobs-cleanup-reservations.yaml'
   /jobs/health:
     $ref: './paths/jobs-health.yaml'
+  /stats/summary:
+    $ref: './paths/stats-summary.yaml'
+  /stats/sales:
+    $ref: './paths/stats-sales.yaml'
+  /stats/top-products:
+    $ref: './paths/stats-top-products.yaml'
+  /stats/customers:
+    $ref: './paths/stats-customers.yaml'
+  /stats/conversion:
+    $ref: './paths/stats-conversion.yaml'
+  /stats/purchase-time:
+    $ref: './paths/stats-purchase-time.yaml'
 components:
   securitySchemes:
     bearerAuth:
@@ -139,6 +157,10 @@ components:
       $ref: './schemas/auth.yaml#/ChangePasswordRequest'
     ChangePasswordResponse:
       $ref: './schemas/auth.yaml#/ChangePasswordResponse'
+    PresignedUrlRequest:
+      $ref: './schemas/auth.yaml#/PresignedUrlRequest'
+    PresignedUrlResponse:
+      $ref: './schemas/auth.yaml#/PresignedUrlResponse'
     Category:
       $ref: './schemas/category.yaml#/Category'
     CategoryCreate:
@@ -199,3 +221,15 @@ components:
       $ref: './schemas/guest.yaml#/GuestCartCreate'
     GuestOrderCreate:
       $ref: './schemas/guest.yaml#/GuestOrderCreate'
+    StatsSummary:
+      $ref: './schemas/stats.yaml#/StatsSummary'
+    SalesData:
+      $ref: './schemas/stats.yaml#/SalesData'
+    TopProductsList:
+      $ref: './schemas/stats.yaml#/TopProductsList'
+    CustomerStats:
+      $ref: './schemas/stats.yaml#/CustomerStats'
+    ConversionStats:
+      $ref: './schemas/stats.yaml#/ConversionStats'
+    PurchaseTimeStats:
+      $ref: './schemas/stats.yaml#/PurchaseTimeStats'

@@ -1,0 +1,32 @@
+post:
+  tags:
+    - Auth
+  summary: Generar URL prefirmada de S3
+  description: Genera una URL prefirmada de AWS S3 para subir una imagen (producto o perfil). Requiere autenticación.
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/auth.yaml#/PresignedUrlRequest'
+  responses:
+    '200':
+      description: URL generada exitosamente
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth.yaml#/PresignedUrlResponse'
+    '400':
+      description: Datos de entrada inválidos
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'
+    '401':
+      description: No autorizado
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/user.yaml#/ErrorResponse'

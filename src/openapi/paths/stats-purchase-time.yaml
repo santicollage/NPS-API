@@ -1,0 +1,33 @@
+get:
+  summary: Obtener tiempo promedio de compra
+  description: Devuelve el tiempo promedio transcurrido entre la creación del carrito y el pago del pedido.
+  tags:
+    - Stats
+  security:
+    - bearerAuth: []
+  parameters:
+    - in: query
+      name: from
+      schema:
+        type: string
+        format: date
+      description: Fecha de inicio (YYYY-MM-DD)
+    - in: query
+      name: to
+      schema:
+        type: string
+        format: date
+      description: Fecha de fin (YYYY-MM-DD)
+  responses:
+    '200':
+      description: Estadísticas obtenidas correctamente
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/stats.yaml#/PurchaseTimeStats'
+    '401':
+      description: No autenticado
+    '403':
+      description: No autorizado (solo administradores)
+    '500':
+      description: Error del servidor
