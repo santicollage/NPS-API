@@ -142,3 +142,33 @@ export const sendOrderConfirmationEmails = async (order, orderItems) => {
     htmlContent: adminHtmlContent,
   });
 };
+
+/**
+ * Send password reset email
+ * @param {string} to - Recipient email
+ * @param {string} name - Recipient name
+ * @param {string} token - Reset token
+ */
+export const sendPasswordResetEmail = async (to, name, token) => {
+  const resetUrl = `https://npsdieselsas.com/reset-password?token=${token}`;
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #333;">Restablecer Contraseña</h2>
+      <p>Hola ${name},</p>
+      <p>Hemos recibido una solicitud para restablecer tu contraseña.</p>
+      <p>Para continuar, haz clic en el siguiente enlace (válido por 15 minutos):</p>
+      <p style="text-align: center;">
+        <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Restablecer Contraseña</a>
+      </p>
+      <p>Si no solicitaste esto, puedes ignorar este correo.</p>
+    </div>
+  `;
+
+  await sendEmail({
+    to,
+    name,
+    subject: 'Restablecer Contraseña - NPS Diesel SAS',
+    htmlContent,
+  });
+};

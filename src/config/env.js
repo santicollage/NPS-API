@@ -57,6 +57,12 @@ export const ENV = {
   EMAIL_SENDER: required('EMAIL_SENDER'),
   EMAIL_SENDER_NAME: required('EMAIL_SENDER_NAME'),
   ADMIN_EMAIL: required('ADMIN_EMAIL'),
+
+  // AWS S3
+  S3_ACCESS_KEY_ID: required('S3_ACCESS_KEY_ID'),
+  S3_SECRET_ACCESS_KEY: required('S3_SECRET_ACCESS_KEY'),
+  S3_BUCKET_NAME: required('S3_BUCKET_NAME'),
+  S3_REGION: required('S3_REGION'),
 };
 
 console.log('🤫 Environment variables loaded successfully.');

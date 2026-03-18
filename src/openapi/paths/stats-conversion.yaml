@@ -1,0 +1,33 @@
+get:
+  summary: Obtener estadísticas de conversión
+  description: Devuelve la tasa de conversión de carritos a pedidos pagados.
+  tags:
+    - Stats
+  security:
+    - bearerAuth: []
+  parameters:
+    - in: query
+      name: from
+      schema:
+        type: string
+        format: date
+      description: Fecha de inicio (YYYY-MM-DD)
+    - in: query
+      name: to
+      schema:
+        type: string
+        format: date
+      description: Fecha de fin (YYYY-MM-DD)
+  responses:
+    '200':
+      description: Estadísticas obtenidas correctamente
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/stats.yaml#/ConversionStats'
+    '401':
+      description: No autenticado
+    '403':
+      description: No autorizado (solo administradores)
+    '500':
+      description: Error del servidor

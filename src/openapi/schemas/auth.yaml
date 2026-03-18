@@ -106,3 +106,33 @@ ChangePasswordResponse:
       example: 'Password changed successfully'
   required:
     - message
+
+PresignedUrlRequest:
+  type: object
+  properties:
+    fileName:
+      type: string
+      description: Name of the file to upload
+      example: 'avatar.jpg'
+    fileType:
+      type: string
+      description: MIME type of the file
+      example: 'image/jpeg'
+  required:
+    - fileName
+    - fileType
+
+PresignedUrlResponse:
+  type: object
+  properties:
+    url:
+      type: string
+      description: The presigned S3 URL for uploading the file
+      example: 'https://s3.amazonaws.com/bucket-name/1234567890-avatar.jpg?...'
+    key:
+      type: string
+      description: The S3 key of the file
+      example: '1234567890-avatar.jpg'
+  required:
+    - url
+    - key

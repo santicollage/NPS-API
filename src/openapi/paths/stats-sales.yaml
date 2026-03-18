@@ -1,0 +1,42 @@
+get:
+  summary: Obtener ventas por período
+  description: Devuelve un listado de ventas agrupadas por día o mes.
+  tags:
+    - Stats
+  security:
+    - bearerAuth: []
+  parameters:
+    - in: query
+      name: groupBy
+      schema:
+        type: string
+        enum: [day, month]
+        default: day
+      description: Agrupar por día o mes
+    - in: query
+      name: from
+      schema:
+        type: string
+        format: date
+      description: Fecha de inicio (YYYY-MM-DD)
+    - in: query
+      name: to
+      schema:
+        type: string
+        format: date
+      description: Fecha de fin (YYYY-MM-DD)
+  responses:
+    '200':
+      description: Ventas obtenidas correctamente
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/stats.yaml#/SalesData'
+    '400':
+      description: Parámetros inválidos
+    '401':
+      description: No autenticado
+    '403':
+      description: No autorizado (solo administradores)
+    '500':
+      description: Error del servidor

@@ -1,0 +1,39 @@
+get:
+  summary: Obtener productos más vendidos
+  description: Devuelve los productos con mayor número de unidades vendidas y revenue generado.
+  tags:
+    - Stats
+  security:
+    - bearerAuth: []
+  parameters:
+    - in: query
+      name: limit
+      schema:
+        type: integer
+        default: 5
+      description: Número de productos a devolver
+    - in: query
+      name: from
+      schema:
+        type: string
+        format: date
+      description: Fecha de inicio (YYYY-MM-DD)
+    - in: query
+      name: to
+      schema:
+        type: string
+        format: date
+      description: Fecha de fin (YYYY-MM-DD)
+  responses:
+    '200':
+      description: Productos obtenidos correctamente
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/stats.yaml#/TopProductsList'
+    '401':
+      description: No autenticado
+    '403':
+      description: No autorizado (solo administradores)
+    '500':
+      description: Error del servidor
