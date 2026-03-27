@@ -17,9 +17,10 @@ setupSecurity(app);
 
 app.use(compression());
 
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
-});
+app
+  .route('/health')
+  .get((req, res) => res.status(200).json({ status: 'ok' }))
+  .head((req, res) => res.status(200).end());
 
 // Routes and error handling are left inside the async to allow the documentation reading and validation to be loaded correctly
 (async () => {
