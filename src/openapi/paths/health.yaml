@@ -16,3 +16,13 @@ get:
                 type: string
                 example: ok
                 description: Health status indicator
+
+head:
+  summary: Health check endpoint (HEAD)
+  description: Verifies the health status of the API without returning a response body. Used for lightweight health checks.
+  operationId: headHealth
+  tags:
+    - Health
+  responses:
+    '200':
+      description: Service is healthy and running
