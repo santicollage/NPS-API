@@ -12,8 +12,8 @@ const server = app.listen(PORT, () => {
   logger.info(`🌍 Environment: ${ENV.NODE_ENV}`);
   logger.info(`📄 Docs: http://localhost:${ENV.PORT}/docs`);
 
-  // Schedule cleanup of expired stock reservations every hour
-  cron.schedule('0 * * * *', async () => {
+  // Schedule cleanup of expired stock reservations every 15 minutes
+  cron.schedule('*/15 * * * *', async () => {
     logger.info(
       '🧹 Running scheduled cleanup of expired stock reservations...'
     );
