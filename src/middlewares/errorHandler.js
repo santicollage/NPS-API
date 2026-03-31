@@ -1,5 +1,16 @@
+import logger from '../utils/logger.js';
+import { ENV } from '../config/env.js';
+
 export default function errorHandler(err, req, res, next) {
-  console.error('🔥 Error capturado:', err);
+  logger.error({
+    message: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    userId: req.user?.user_id,
+    ip: req.ip,
+    timestamp: new Date().toISOString(),
+  });
 
   if (err.status && err.errors) {
     return res.status(err.status).json({
@@ -16,5 +27,6 @@ export default function errorHandler(err, req, res, next) {
   res.status(statusCode).json({
     status: statusCode,
     message,
+    ...(ENV.NODE_ENV === 'development' && { stack: err.stack }),
   });
 }

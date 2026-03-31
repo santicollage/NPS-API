@@ -10,6 +10,7 @@ import compression from 'compression';
 import errorHandler from './middlewares/errorHandler.js';
 import setupSecurity from './config/security.js';
 import apiRoutes from './routes/index.js';
+import logger from './utils/logger.js';
 
 const app = express();
 
@@ -33,12 +34,14 @@ app
       throw new Error(`The OpenAPI file was not found in: ${openApiPath}`);
     }
 
-    console.log('📘 Loading OpenAPI specification from:', openApiPath);
+    logger.info('📘 Loading OpenAPI specification from:', {
+      path: openApiPath,
+    });
 
     // Resolve references ($ref:) correctly from openapi.yaml
     const resolvedSpec = await RefParser.dereference(openApiPath);
 
-    console.log('✅ OpenAPI specification loaded and resolved successfully.');
+    logger.info('✅ OpenAPI specification loaded and resolved successfully.');
 
     // Build Swagger UI with the documentation sorted
     app.use('/docs', swaggerUi.serve, swaggerUi.setup(resolvedSpec));
@@ -62,7 +65,10 @@ app
 
     app.use(errorHandler);
   } catch (error) {
-    console.error('❌ Error resolving OpenAPI references:', error.message);
+    logger.error('❌ Error resolving OpenAPI references:', {
+      error: error.message,
+      stack: error.stack,
+    });
   }
 })();
 

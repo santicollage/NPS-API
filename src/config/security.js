@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { ENV } from './env.js';
+import logger from '../utils/logger.js';
 
 export default function setupSecurity(app) {
   const allowedOrigins = ENV.CORS_ORIGINS;
@@ -60,5 +61,5 @@ export default function setupSecurity(app) {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  console.log('🔒 Security middlewares loaded correctly.');
+  logger.info('🔒 Security middlewares loaded correctly.');
 }
