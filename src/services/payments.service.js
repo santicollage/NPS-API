@@ -213,11 +213,73 @@ export const createPayment = async (paymentData) => {
 };
 
 /**
+ * Validate PayU webhook signature
+ * @param {Object} webhookData - Webhook payload
+ * @returns {boolean} Whether signature is valid
+ */
+const validatePayUSignature = (webhookData) => {
+  const { merchant_id, reference_sale, value, currency, state_pol, sign } =
+    webhookData;
+
+  if (!sign) {
+    return false;
+  }
+
+  const apiKey = ENV.PAYU_API_KEY;
+  const merchantId = ENV.PAYU_MERCHANT_ID;
+
+  // PayU signature format: ApiKey~merchantId~referenceCode~value~currency~statePol
+  const signatureString = `${apiKey}~${merchantId}~${reference_sale}~${value}~${currency}~${state_pol}`;
+  const expectedSignature = crypto
+    .createHash('md5')
+    .update(signatureString)
+    .digest('hex');
+
+  return sign === expectedSignature;
+};
+
+/**
+ * Validate webhook source IP
+ * @param {string} requestIP - Request IP address
+ * @returns {boolean} Whether IP is from PayU
+ */
+const validatePayUIP = (requestIP) => {
+  // PayU Colombia IP addresses (verificar con documentación actualizada)
+  const allowedIPs = [
+    '191.98.163.211',
+    '191.98.163.210',
+    '191.98.163.209',
+    '127.0.0.1', // Para desarrollo local
+    '::1', // IPv6 localhost
+  ];
+
+  // Extraer IP real (considerar proxies y load balancers)
+  const cleanIP = requestIP?.replace(/^::ffff:/, '') || '';
+
+  return (
+    ENV.NODE_ENV === 'development' ||
+    allowedIPs.includes(cleanIP) ||
+    allowedIPs.includes(requestIP)
+  );
+};
+
+/**
  * Process webhook from PayU
  * @param {Object} webhookData - Webhook payload
+ * @param {string} requestIP - Request IP address
  * @returns {Promise<Object>} Webhook processing result
  */
-export const processWebhook = async (webhookData) => {
+export const processWebhook = async (webhookData, requestIP = null) => {
+  // Validate webhook signature
+  if (!validatePayUSignature(webhookData)) {
+    throw new Error('Invalid webhook signature');
+  }
+
+  // Validate source IP
+  if (requestIP && !validatePayUIP(requestIP)) {
+    throw new Error('Unauthorized webhook source IP');
+  }
+
   // PayU webhook structure
   const { state_pol, transaction_id, reference_pol, reference_sale } =
     webhookData;

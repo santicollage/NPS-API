@@ -83,7 +83,9 @@ export const createPaymentController = async (req, res, next) => {
 export const processWebhookController = async (req, res, next) => {
   try {
     const webhookData = req.body;
-    const result = await processWebhook(webhookData);
+    const requestIP =
+      req.ip || req.connection?.remoteAddress || req.headers['x-forwarded-for'];
+    const result = await processWebhook(webhookData, requestIP);
     res.status(200).json(result);
   } catch (error) {
     if (error.message === 'Payment not found') {
@@ -91,6 +93,22 @@ export const processWebhookController = async (req, res, next) => {
         error: {
           message: 'Invalid webhook data',
           status: 400,
+        },
+      });
+    }
+    if (error.message === 'Invalid webhook signature') {
+      return res.status(401).json({
+        error: {
+          message: 'Invalid webhook signature',
+          status: 401,
+        },
+      });
+    }
+    if (error.message === 'Unauthorized webhook source IP') {
+      return res.status(403).json({
+        error: {
+          message: 'Unauthorized webhook source',
+          status: 403,
         },
       });
     }
