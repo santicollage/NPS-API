@@ -10,6 +10,7 @@ import compression from 'compression';
 import errorHandler from './middlewares/errorHandler.js';
 import setupSecurity from './config/security.js';
 import apiRoutes from './routes/index.js';
+import healthRoutes from './routes/health.routes.js';
 import logger from './utils/logger.js';
 
 const app = express();
@@ -18,10 +19,7 @@ setupSecurity(app);
 
 app.use(compression());
 
-app
-  .route('/health')
-  .get((req, res) => res.status(200).json({ status: 'ok' }))
-  .head((req, res) => res.status(200).end());
+app.use('/health', healthRoutes);
 
 // Routes and error handling are left inside the async to allow the documentation reading and validation to be loaded correctly
 (async () => {

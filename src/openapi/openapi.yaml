@@ -28,6 +28,10 @@ paths:
     $ref: './paths/ping.yaml'
   /health:
     $ref: './paths/health.yaml'
+  /health/ready:
+    $ref: './paths/health-ready.yaml'
+  /health/live:
+    $ref: './paths/health-live.yaml'
   /users:
     $ref: './paths/users.yaml'
   /users/{user_id}:

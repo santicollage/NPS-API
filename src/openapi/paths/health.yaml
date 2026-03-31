@@ -1,6 +1,8 @@
 get:
-  summary: Health check endpoint
-  description: Returns the health status of the API. Used by Render and other monitoring services to verify service availability.
+  summary: Detailed health check endpoint
+  description: |
+    Returns comprehensive health status of the API including database connectivity, memory usage, and system information.
+    Used by monitoring services to verify service availability and performance.
   operationId: getHealth
   tags:
     - Health
@@ -14,12 +16,86 @@ get:
             properties:
               status:
                 type: string
-                example: ok
-                description: Health status indicator
+                enum: [healthy, degraded, unhealthy]
+                example: healthy
+              timestamp:
+                type: string
+                format: date-time
+                example: '2024-03-30T20:00:00.000Z'
+              uptime:
+                type: number
+                description: Server uptime in seconds
+                example: 3600.5
+              services:
+                type: object
+                properties:
+                  database:
+                    type: string
+                    enum: [connected, disconnected]
+                    example: connected
+                  api:
+                    type: string
+                    example: running
+              details:
+                type: object
+                properties:
+                  database:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        enum: [ok, error]
+                        example: ok
+                      responseTime:
+                        type: string
+                        example: '15ms'
+                  memory:
+                    type: object
+                    properties:
+                      used:
+                        type: number
+                        example: 45.23
+                      total:
+                        type: number
+                        example: 128.5
+                      unit:
+                        type: string
+                        example: MB
+                  process:
+                    type: object
+                    properties:
+                      pid:
+                        type: integer
+                        example: 12345
+                      nodeVersion:
+                        type: string
+                        example: v20.0.0
+                      platform:
+                        type: string
+                        example: linux
+    '503':
+      description: Service is degraded or unhealthy
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                enum: [degraded, unhealthy]
+                example: degraded
+              timestamp:
+                type: string
+                format: date-time
+              error:
+                type: string
+                example: Database connection failed
 
 head:
-  summary: Health check endpoint (HEAD)
-  description: Verifies the health status of the API without returning a response body. Used for lightweight health checks.
+  summary: Lightweight health check
+  description: |
+    Verifies the health status of the API without returning a response body.
+    Used for lightweight health checks by monitoring applications.
   operationId: headHealth
   tags:
     - Health
