@@ -147,7 +147,7 @@ export const createPayment = async (paymentData) => {
         cookie: `cookie_${Date.now()}`,
         userAgent: 'Mozilla/5.0',
       },
-      test: environment === 'sandbox',
+      test: ENV.PAYU_ENVIRONMENT === 'sandbox',
     };
 
     // Create payment in PayU
