@@ -162,7 +162,7 @@ export const cleanupExpiredReservations = async () => {
         },
       },
       select: {
-        id: true,
+        reservation_id: true,
         product_id: true,
         quantity: true,
       },
@@ -175,31 +175,12 @@ export const cleanupExpiredReservations = async () => {
       };
     }
 
-    // Group by product to create movements
-    const productMovements = {};
-    for (const { product_id, quantity } of expiredReservations) {
-      productMovements[product_id] =
-        (productMovements[product_id] || 0) + quantity;
-    }
-
-    // Create movements using createMany for better performance
-    const movements = Object.entries(productMovements).map(
-      ([productId, quantity]) => ({
-        product_id: parseInt(productId, 10),
-        type: 'entry',
-        quantity,
-        reason: 'RESERVATION_EXPIRED',
-      })
-    );
-
-    await tx.stockMovement.createMany({
-      data: movements,
-    });
-
     // Delete only the specific reservations we found
     const deleteResult = await tx.stockReservation.deleteMany({
       where: {
-        id: { in: expiredReservations.map((r) => r.id) },
+        reservation_id: {
+          in: expiredReservations.map((r) => r.reservation_id),
+        },
       },
     });
 
