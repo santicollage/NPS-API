@@ -3,6 +3,7 @@ import {
   healthCheck,
   readinessCheck,
   livenessCheck,
+  cacheStats,
 } from '../controllers/health.controller.js';
 
 const router = express.Router();
@@ -18,5 +19,8 @@ router.get('/ready', readinessCheck);
 
 // GET /health/live - Liveness probe (for Kubernetes)
 router.get('/live', livenessCheck);
+
+// GET /health/cache - Cache statistics
+router.get('/cache', cacheStats);
 
 export default router;

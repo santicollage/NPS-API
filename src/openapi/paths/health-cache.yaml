@@ -1,0 +1,64 @@
+get:
+  tags:
+    - Health
+  summary: Get cache statistics
+  description: Returns cache performance metrics including hits, misses, and hit rate
+  operationId: getCacheStats
+  responses:
+    '200':
+      description: Cache statistics retrieved successfully
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: ok
+              timestamp:
+                type: string
+                format: date-time
+                example: '2024-01-15T10:30:00.000Z'
+              cache:
+                type: object
+                properties:
+                  keys:
+                    type: number
+                    description: Number of keys in cache
+                    example: 42
+                  hits:
+                    type: number
+                    description: Number of cache hits
+                    example: 150
+                  misses:
+                    type: number
+                    description: Number of cache misses
+                    example: 50
+                  hitRate:
+                    type: string
+                    description: Cache hit rate percentage
+                    example: '75.00%'
+                  ksize:
+                    type: number
+                    description: Approximate memory used by keys (bytes)
+                    example: 1024
+                  vsize:
+                    type: number
+                    description: Approximate memory used by values (bytes)
+                    example: 51200
+    '500':
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: error
+              timestamp:
+                type: string
+                format: date-time
+              error:
+                type: string
+                example: Failed to retrieve cache statistics

@@ -13,21 +13,23 @@ const server = app.listen(PORT, () => {
   logger.info(`📄 Docs: http://localhost:${ENV.PORT}/docs`);
 
   // Schedule cleanup of expired stock reservations every 15 minutes
-  cron.schedule('*/15 * * * *', async () => {
-    logger.info(
-      '🧹 Running scheduled cleanup of expired stock reservations...'
-    );
-    try {
-      const result = await cleanupExpiredReservations();
+  cron.schedule('*/15 * * * *', () => {
+    setImmediate(async () => {
       logger.info(
-        `✅ Cleanup completed: ${result.deletedCount} reservations deleted`
+        '🧹 Running scheduled cleanup of expired stock reservations...'
       );
-    } catch (error) {
-      logger.error('❌ Error during scheduled cleanup:', {
-        error: error.message,
-        stack: error.stack,
-      });
-    }
+      try {
+        const result = await cleanupExpiredReservations();
+        logger.info(
+          `✅ Cleanup completed: ${result.cleaned_reservations} reservations deleted`
+        );
+      } catch (error) {
+        logger.error('❌ Error during scheduled cleanup:', {
+          error: error.message,
+          stack: error.stack,
+        });
+      }
+    });
   });
 });
 

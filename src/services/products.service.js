@@ -1,4 +1,13 @@
 import prisma from '../config/db.js';
+import * as cache from '../config/cache.js';
+
+const CACHE_KEYS = {
+  PRODUCT_BY_ID: (id) => `product:${id}`,
+};
+
+const CACHE_TTL = {
+  PRODUCTS: 300, // 5 minutes
+};
 
 /**
  * Get all products with optional filtering

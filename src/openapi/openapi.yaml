@@ -32,6 +32,8 @@ paths:
     $ref: './paths/health-ready.yaml'
   /health/live:
     $ref: './paths/health-live.yaml'
+  /health/cache:
+    $ref: './paths/health-cache.yaml'
   /users:
     $ref: './paths/users.yaml'
   /users/{user_id}:

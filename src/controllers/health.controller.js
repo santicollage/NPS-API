@@ -1,10 +1,11 @@
 import { checkDatabaseHealth } from '../services/health.service.js';
 import logger from '../utils/logger.js';
+import * as cache from '../config/cache.js';
 
 export const healthCheck = async (req, res) => {
   try {
     const dbHealth = await checkDatabaseHealth();
-    
+
     const healthStatus = {
       status: dbHealth.healthy ? 'healthy' : 'degraded',
       timestamp: new Date().toISOString(),
@@ -20,8 +21,12 @@ export const healthCheck = async (req, res) => {
           ...(dbHealth.error && { error: dbHealth.error }),
         },
         memory: {
-          used: Math.round((process.memoryUsage().heapUsed / 1024 / 1024) * 100) / 100,
-          total: Math.round((process.memoryUsage().heapTotal / 1024 / 1024) * 100) / 100,
+          used:
+            Math.round((process.memoryUsage().heapUsed / 1024 / 1024) * 100) /
+            100,
+          total:
+            Math.round((process.memoryUsage().heapTotal / 1024 / 1024) * 100) /
+            100,
           unit: 'MB',
         },
         process: {
@@ -33,14 +38,17 @@ export const healthCheck = async (req, res) => {
     };
 
     const statusCode = healthStatus.status === 'healthy' ? 200 : 503;
-    
+
     if (statusCode === 503) {
       logger.warn('Health check failed', healthStatus);
     }
 
     res.status(statusCode).json(healthStatus);
   } catch (error) {
-    logger.error('Health check error:', { error: error.message, stack: error.stack });
+    logger.error('Health check error:', {
+      error: error.message,
+      stack: error.stack,
+    });
     res.status(503).json({
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
@@ -52,7 +60,7 @@ export const healthCheck = async (req, res) => {
 export const readinessCheck = async (req, res) => {
   try {
     const dbHealth = await checkDatabaseHealth();
-    
+
     if (dbHealth.healthy) {
       res.status(200).json({
         status: 'ready',
@@ -66,7 +74,10 @@ export const readinessCheck = async (req, res) => {
       });
     }
   } catch (error) {
-    logger.error('Readiness check error:', { error: error.message, stack: error.stack });
+    logger.error('Readiness check error:', {
+      error: error.message,
+      stack: error.stack,
+    });
     res.status(503).json({
       status: 'not ready',
       timestamp: new Date().toISOString(),
@@ -80,4 +91,40 @@ export const livenessCheck = (req, res) => {
     status: 'alive',
     timestamp: new Date().toISOString(),
   });
+};
+
+/**
+ * Cache statistics endpoint
+ */
+export const cacheStats = (req, res) => {
+  try {
+    const stats = cache.getStats();
+
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      cache: {
+        keys: stats.keys,
+        hits: stats.hits,
+        misses: stats.misses,
+        hitRate:
+          stats.hits > 0
+            ? ((stats.hits / (stats.hits + stats.misses)) * 100).toFixed(2) +
+              '%'
+            : '0%',
+        ksize: stats.ksize,
+        vsize: stats.vsize,
+      },
+    });
+  } catch (error) {
+    logger.error('Cache stats error:', {
+      error: error.message,
+      stack: error.stack,
+    });
+    res.status(500).json({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      error: 'Failed to retrieve cache statistics',
+    });
+  }
 };
