@@ -4,33 +4,100 @@ import { ENV } from './config/env.js';
 import cron from 'node-cron';
 import { cleanupExpiredReservations } from './services/stock.service.js';
 import logger from './utils/logger.js';
+import prisma from './config/db.js';
+import cache from './config/cache.js';
+import shutdownState from './config/shutdown.js';
 
 const PORT = ENV.PORT || 3000;
+
+// ============================================================
+// 🔍 TEMPORARY EVENT LOOP MONITOR - Remove after diagnosing
+// ============================================================
+import { PerformanceObserver } from 'perf_hooks';
+
+// Monitor V8 Garbage Collection events
+const gcObserver = new PerformanceObserver((list) => {
+  for (const entry of list.getEntries()) {
+    if (entry.duration > 50) {
+      logger.warn(`🗑️ GC PAUSE: ${entry.duration.toFixed(1)}ms (kind: ${entry.detail?.kind || entry.kind || 'unknown'})`);
+    }
+  }
+});
+try {
+  gcObserver.observe({ entryTypes: ['gc'] });
+} catch (e) {
+  logger.warn('⚠️ GC monitoring requires --expose-gc or Node 16+. Skipping GC monitor.');
+}
+
+let maxLag = 0;
+let lastCheck = Date.now();
+
+const eventLoopMonitor = setInterval(() => {
+  const now = Date.now();
+  const lag = now - lastCheck - 500; // 500ms is the check interval
+  lastCheck = now;
+
+  if (lag > maxLag) maxLag = lag;
+
+  if (lag > 100) {
+    const mem = process.memoryUsage();
+    logger.warn(`⚠️ EVENT LOOP BLOCKED for ${lag}ms | RSS: ${(mem.rss / 1024 / 1024).toFixed(1)}MB | Heap: ${(mem.heapUsed / 1024 / 1024).toFixed(1)}/${(mem.heapTotal / 1024 / 1024).toFixed(1)}MB`);
+  }
+}, 500);
+
+// Report max lag + memory every 30 seconds
+const lagReporter = setInterval(() => {
+  const mem = process.memoryUsage();
+  if (maxLag > 50) {
+    logger.warn(`📊 MAX LAG (30s): ${maxLag}ms | RSS: ${(mem.rss / 1024 / 1024).toFixed(1)}MB | Heap: ${(mem.heapUsed / 1024 / 1024).toFixed(1)}/${(mem.heapTotal / 1024 / 1024).toFixed(1)}MB`);
+  }
+  maxLag = 0;
+}, 30000);
+
+// Don't let monitors prevent process exit
+eventLoopMonitor.unref();
+lagReporter.unref();
+// ============================================================
+
+// ─── Socket Tracking ─────────────────────────────────────────
+const sockets = new Set();
+
+// ─── Cron State ──────────────────────────────────────────────
+let cronRunning = false;
 
 const server = app.listen(PORT, () => {
   logger.info(`🚀 Server running on port ${ENV.PORT}`);
   logger.info(`🌍 Environment: ${ENV.NODE_ENV}`);
   logger.info(`📄 Docs: http://localhost:${ENV.PORT}/docs`);
+});
 
-  // Schedule cleanup of expired stock reservations every 15 minutes
-  cron.schedule('*/15 * * * *', () => {
-    setImmediate(async () => {
-      logger.info(
-        '🧹 Running scheduled cleanup of expired stock reservations...'
-      );
-      try {
-        const result = await cleanupExpiredReservations();
-        logger.info(
-          `✅ Cleanup completed: ${result.cleaned_reservations} reservations deleted`
-        );
-      } catch (error) {
-        logger.error('❌ Error during scheduled cleanup:', {
-          error: error.message,
-          stack: error.stack,
-        });
-      }
-    });
+// Track connected sockets for forced cleanup during shutdown
+server.on('connection', (socket) => {
+  sockets.add(socket);
+
+  socket.on('close', () => {
+    sockets.delete(socket);
   });
+});
+
+// Schedule cleanup of expired stock reservations every 15 minutes
+const cronTask = cron.schedule('*/15 * * * *', async () => {
+  if (shutdownState.isShuttingDown) return;
+
+  cronRunning = true;
+
+  try {
+    logger.info('🧹 Running scheduled cleanup of expired stock reservations...');
+    const result = await cleanupExpiredReservations();
+    logger.info(`✅ Cleanup completed: ${result.cleaned_reservations} reservations deleted`);
+  } catch (error) {
+    logger.error('❌ Error during scheduled cleanup:', {
+      error: error.message,
+      stack: error.stack,
+    });
+  } finally {
+    cronRunning = false;
+  }
 });
 
 server.on('error', (error) => {
@@ -52,18 +119,83 @@ server.on('error', (error) => {
   }
 });
 
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down server...');
+// ─── Graceful Shutdown ───────────────────────────────────────
+
+async function gracefulShutdown(signal) {
+  logger.info(`⚠️ ${signal} received. Starting graceful shutdown...`);
+
+  if (shutdownState.isShuttingDown) return; // prevent double execution
+  shutdownState.isShuttingDown = true;
+
+  // ⛔ 1. Stop accepting new connections
   server.close(() => {
-    logger.info('Server closed.');
+    logger.info('🚫 HTTP server stopped accepting new connections');
   });
+
+  // ⛔ 2. Destroy keep-alive sockets after 5 seconds
+  setTimeout(() => {
+    sockets.forEach((socket) => socket.destroy());
+    logger.info('🔌 All sockets destroyed');
+  }, 5000);
+
+  // ⛔ 3. Wait for active requests to drain (max 8s)
+  const waitForRequests = async () => {
+    const start = Date.now();
+
+    while (shutdownState.activeRequests > 0) {
+      if (Date.now() - start > 8000) {
+        logger.warn(`⚠️ Timeout waiting for ${shutdownState.activeRequests} active request(s)`);
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  };
+
+  await waitForRequests();
+  logger.info('✅ Active requests drained');
+
+  // ⛔ 4. Stop cron and wait for in-flight execution (max 5s)
+  cronTask.stop();
+
+  const waitForCron = async () => {
+    const start = Date.now();
+
+    while (cronRunning) {
+      if (Date.now() - start > 5000) {
+        logger.warn('⚠️ Timeout waiting for cron job');
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  };
+
+  await waitForCron();
+  logger.info('✅ Cron stopped');
+
+  // ⛔ 5. Close cache timers
+  cache.close();
+  logger.info('✅ Cache closed');
+
+  // ⛔ 6. Disconnect database (only safe after all requests drained)
+  await prisma.$disconnect();
+  logger.info('✅ DB disconnected');
+
+  logger.info('🏁 Graceful shutdown complete');
+  process.exit(0);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// ─── Catch Unhandled Errors ──────────────────────────────────
+
+process.on('unhandledRejection', (err) => {
+  logger.error('Unhandled Rejection:', err);
 });
 
-process.on('SIGINT', () => {
-  logger.info('SIGINT received, shutting down server...');
-  server.close(() => {
-    logger.info('Server closed.');
-  });
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught Exception:', err);
+  process.exit(1);
 });
 
 export default server;

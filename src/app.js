@@ -12,12 +12,28 @@ import setupSecurity from './config/security.js';
 import apiRoutes from './routes/index.js';
 import healthRoutes from './routes/health.routes.js';
 import logger from './utils/logger.js';
+import shutdownState from './config/shutdown.js';
 
 const app = express();
 
 setupSecurity(app);
 
 app.use(compression());
+
+// Track active requests & reject new ones during shutdown
+app.use((req, res, next) => {
+  if (shutdownState.isShuttingDown) {
+    return res.status(503).json({ error: 'Server shutting down' });
+  }
+
+  shutdownState.activeRequests++;
+
+  res.on('finish', () => {
+    shutdownState.activeRequests--;
+  });
+
+  next();
+});
 
 app.use('/health', healthRoutes);
 

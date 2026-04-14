@@ -21,5 +21,11 @@ RUN npx prisma generate
 # Exponer puerto
 EXPOSE 3000
 
-# Comando de inicio
-CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
+# Build entrypoint: run migrations then exec node as PID 1
+RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
+    echo 'set -e' >> /app/entrypoint.sh && \
+    echo 'npx prisma migrate deploy' >> /app/entrypoint.sh && \
+    echo 'exec node src/server.js' >> /app/entrypoint.sh && \
+    chmod +x /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]
