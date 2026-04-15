@@ -104,10 +104,12 @@ const updateCartShippingCost = async (cartId) => {
   // but here we only have bogota/nacional. Let's stick to 'nacional' as a safe default for now.
   const { cost } = calculateShippingCost(itemsForCalc, 'nacional');
 
-  await prisma.cart.update({
-    where: { cart_id: cartId },
-    data: { shipping_cost: cost },
-  });
+  if (cart.shipping_cost !== cost) {
+    await prisma.cart.update({
+      where: { cart_id: cartId },
+      data: { shipping_cost: cost },
+    });
+  }
 };
 export const getOrCreateActiveCart = async (userId, guestId) => {
   if (!userId && !guestId) {
