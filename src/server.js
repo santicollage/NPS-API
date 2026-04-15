@@ -10,54 +10,6 @@ import shutdownState from './config/shutdown.js';
 
 const PORT = ENV.PORT || 3000;
 
-// ============================================================
-// 🔍 TEMPORARY EVENT LOOP MONITOR - Remove after diagnosing
-// ============================================================
-import { PerformanceObserver } from 'perf_hooks';
-
-// Monitor V8 Garbage Collection events
-const gcObserver = new PerformanceObserver((list) => {
-  for (const entry of list.getEntries()) {
-    if (entry.duration > 50) {
-      logger.warn(`🗑️ GC PAUSE: ${entry.duration.toFixed(1)}ms (kind: ${entry.detail?.kind || entry.kind || 'unknown'})`);
-    }
-  }
-});
-try {
-  gcObserver.observe({ entryTypes: ['gc'] });
-} catch (e) {
-  logger.warn('⚠️ GC monitoring requires --expose-gc or Node 16+. Skipping GC monitor.');
-}
-
-let maxLag = 0;
-let lastCheck = Date.now();
-
-const eventLoopMonitor = setInterval(() => {
-  const now = Date.now();
-  const lag = now - lastCheck - 500; // 500ms is the check interval
-  lastCheck = now;
-
-  if (lag > maxLag) maxLag = lag;
-
-  if (lag > 100) {
-    const mem = process.memoryUsage();
-    logger.warn(`⚠️ EVENT LOOP BLOCKED for ${lag}ms | RSS: ${(mem.rss / 1024 / 1024).toFixed(1)}MB | Heap: ${(mem.heapUsed / 1024 / 1024).toFixed(1)}/${(mem.heapTotal / 1024 / 1024).toFixed(1)}MB`);
-  }
-}, 500);
-
-// Report max lag + memory every 30 seconds
-const lagReporter = setInterval(() => {
-  const mem = process.memoryUsage();
-  if (maxLag > 50) {
-    logger.warn(`📊 MAX LAG (30s): ${maxLag}ms | RSS: ${(mem.rss / 1024 / 1024).toFixed(1)}MB | Heap: ${(mem.heapUsed / 1024 / 1024).toFixed(1)}/${(mem.heapTotal / 1024 / 1024).toFixed(1)}MB`);
-  }
-  maxLag = 0;
-}, 30000);
-
-// Don't let monitors prevent process exit
-eventLoopMonitor.unref();
-lagReporter.unref();
-// ============================================================
 
 // ─── Socket Tracking ─────────────────────────────────────────
 const sockets = new Set();
