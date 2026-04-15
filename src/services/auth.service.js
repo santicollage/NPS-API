@@ -98,9 +98,10 @@ export const loginWithEmail = async (email, password, guestId) => {
   const accessToken = generateAccessToken(payload);
   const refreshToken = generateRefreshToken(payload);
 
+  const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
   await prisma.user.update({
     where: { user_id: user.user_id },
-    data: { refresh_token: refreshToken },
+    data: { refresh_token: hashedRefreshToken },
   });
 
   // Link guest resources to user if guestId is provided
@@ -233,9 +234,10 @@ export const loginWithGoogle = async (idToken, guestId) => {
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
     await prisma.user.update({
       where: { user_id: user.user_id },
-      data: { refresh_token: refreshToken },
+      data: { refresh_token: hashedRefreshToken },
     });
 
     // Link guest resources to user if guestId is provided
@@ -287,7 +289,12 @@ export const refreshAccessToken = async (refreshToken) => {
       },
     });
 
-    if (!user || user.refresh_token !== refreshToken) {
+    if (!user || !user.refresh_token) {
+      throw new Error('Invalid refresh token');
+    }
+
+    const isValid = await bcrypt.compare(refreshToken, user.refresh_token);
+    if (!isValid) {
       throw new Error('Invalid refresh token');
     }
 
