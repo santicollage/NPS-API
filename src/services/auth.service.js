@@ -30,7 +30,12 @@ const s3Client = new S3Client({
  * @returns {Promise<Object>} Presigned URL and file key
  */
 export const generatePresignedUrl = async (fileName, fileType) => {
-  const key = `${Date.now()}-${fileName}`;
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+  if (!allowedTypes.includes(fileType)) {
+    throw new Error('Invalid file type. Only images are allowed.');
+  }
+
+  const key = `products/${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, '')}`;
   const command = new PutObjectCommand({
     Bucket: ENV.S3_BUCKET_NAME,
     Key: key,
