@@ -30,7 +30,12 @@ const s3Client = new S3Client({
  * @returns {Promise<Object>} Presigned URL and file key
  */
 export const generatePresignedUrl = async (fileName, fileType) => {
-  const key = `${Date.now()}-${fileName}`;
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+  if (!allowedTypes.includes(fileType)) {
+    throw new Error('Invalid file type. Only images are allowed.');
+  }
+
+  const key = `products/${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, '')}`;
   const command = new PutObjectCommand({
     Bucket: ENV.S3_BUCKET_NAME,
     Key: key,
@@ -98,9 +103,10 @@ export const loginWithEmail = async (email, password, guestId) => {
   const accessToken = generateAccessToken(payload);
   const refreshToken = generateRefreshToken(payload);
 
+  const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
   await prisma.user.update({
     where: { user_id: user.user_id },
-    data: { refresh_token: refreshToken },
+    data: { refresh_token: hashedRefreshToken },
   });
 
   // Link guest resources to user if guestId is provided
@@ -233,9 +239,10 @@ export const loginWithGoogle = async (idToken, guestId) => {
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
     await prisma.user.update({
       where: { user_id: user.user_id },
-      data: { refresh_token: refreshToken },
+      data: { refresh_token: hashedRefreshToken },
     });
 
     // Link guest resources to user if guestId is provided
@@ -287,7 +294,12 @@ export const refreshAccessToken = async (refreshToken) => {
       },
     });
 
-    if (!user || user.refresh_token !== refreshToken) {
+    if (!user || !user.refresh_token) {
+      throw new Error('Invalid refresh token');
+    }
+
+    const isValid = await bcrypt.compare(refreshToken, user.refresh_token);
+    if (!isValid) {
       throw new Error('Invalid refresh token');
     }
 

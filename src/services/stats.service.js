@@ -21,7 +21,7 @@ export const getStatsSummary = async ({ from, to }) => {
     const end = new Date();
     const start = new Date();
     start.setMonth(start.getMonth() - 1);
-    
+
     where.created_at = {
       gte: start,
       lte: end,
@@ -53,23 +53,27 @@ export const getStatsSummary = async ({ from, to }) => {
     const end = new Date();
     const start = new Date();
     start.setMonth(start.getMonth() - 1);
-    
+
     cartWhere.created_at = {
       gte: start,
       lte: end,
     };
   }
-  
+
   const totalCarts = await prisma.cart.count({ where: cartWhere });
-  const conversionRate = totalCarts > 0 ? Number((totalOrders / totalCarts).toFixed(2)) : 0;
+  const conversionRate =
+    totalCarts > 0 ? Number((totalOrders / totalCarts).toFixed(2)) : 0;
 
   // Average purchase time calculation (heuristic)
-  // Since we don't have a direct link in the DB schema provided in read_file, 
+  // Since we don't have a direct link in the DB schema provided in read_file,
   // we'll leave this for the specific purchase-time endpoint or calculating it here might be too heavy?
   // The requirements asked for it in the getPurchaseTime endpoint specifically, but summary also asks for "averagePurchaseTimeMinutes".
   // Let's implement calculatePurchaseTime here reusing the logic we will put in getPurchaseTime.
-  
-  const averagePurchaseTimeMinutes = await calculateAveragePurchaseTime({ from, to });
+
+  const averagePurchaseTimeMinutes = await calculateAveragePurchaseTime({
+    from,
+    to,
+  });
 
   return {
     totalSales,
@@ -77,7 +81,7 @@ export const getStatsSummary = async ({ from, to }) => {
     averageTicket: Number(averageTicket.toFixed(2)),
     totalCustomers,
     conversionRate,
-    averagePurchaseTimeMinutes
+    averagePurchaseTimeMinutes,
   };
 };
 
@@ -102,7 +106,7 @@ export const getSalesByPeriod = async ({ from, to, groupBy = 'day' }) => {
     const end = new Date();
     const start = new Date();
     start.setMonth(start.getMonth() - 1);
-    
+
     where.created_at = {
       gte: start,
       lte: end,
@@ -178,22 +182,28 @@ export const getTopProducts = async ({ from, to, limit = 5 }) => {
     take: limit,
   });
 
-  // Fetch product details
-  const topProducts = await Promise.all(
-    orderItems.map(async (item) => {
-      const product = await prisma.product.findUnique({
-        where: { product_id: item.product_id },
-        select: { name: true },
-      });
+  // Fetch product details in a single query (avoid N+1)
+  const productIds = orderItems.map((item) => item.product_id);
+  const products = await prisma.product.findMany({
+    where: {
+      product_id: { in: productIds },
+    },
+    select: {
+      product_id: true,
+      name: true,
+    },
+  });
 
-      return {
-        productId: item.product_id,
-        name: product ? product.name : 'Unknown Product',
-        unitsSold: item._sum.quantity,
-        revenue: Number(item._sum.subtotal || 0),
-      };
-    })
-  );
+  // Create a map for quick lookup
+  const productMap = new Map(products.map((p) => [p.product_id, p.name]));
+
+  // Build response with product names
+  const topProducts = orderItems.map((item) => ({
+    productId: item.product_id,
+    name: productMap.get(item.product_id) || 'Unknown Product',
+    unitsSold: item._sum.quantity,
+    revenue: Number(item._sum.subtotal || 0),
+  }));
 
   return topProducts;
 };
@@ -272,7 +282,8 @@ export const getConversionStats = async ({ from, to }) => {
     }),
   ]);
 
-  const conversionRate = totalCarts > 0 ? Number((totalOrders / totalCarts).toFixed(2)) : 0;
+  const conversionRate =
+    totalCarts > 0 ? Number((totalOrders / totalCarts).toFixed(2)) : 0;
 
   return {
     totalCarts,
@@ -289,73 +300,67 @@ export const getConversionStats = async ({ from, to }) => {
  * @returns {Promise<number>} Average minutes
  */
 export const calculateAveragePurchaseTime = async ({ from, to }) => {
-  const where = {
-    status: { in: ['paid', 'shipped', 'delivered'] },
-  };
+  // Build WHERE clause for date filtering
+  const dateConditions = [];
+  const params = [];
+  let paramIndex = 1;
 
-  if (from || to) {
-    where.created_at = {};
-    if (from) where.created_at.gte = new Date(from);
-    if (to) where.created_at.lte = new Date(to);
+  if (from) {
+    dateConditions.push(`o.created_at >= $${paramIndex}`);
+    params.push(new Date(from));
+    paramIndex++;
+  }
+  if (to) {
+    dateConditions.push(`o.created_at <= $${paramIndex}`);
+    params.push(new Date(to));
+    paramIndex++;
   }
 
-  // Get paid orders
-  const orders = await prisma.order.findMany({
-    where,
-    select: {
-      order_id: true,
-      user_id: true,
-      guest_id: true,
-      created_at: true,
-    },
-  });
+  const dateFilter =
+    dateConditions.length > 0 ? `AND ${dateConditions.join(' AND ')}` : '';
 
-  if (orders.length === 0) return 0;
+  // Raw SQL query with JOIN to avoid N+1
+  // Uses DISTINCT ON to get the most recent cart per order
+  const query = `
+    WITH order_cart_pairs AS (
+      SELECT DISTINCT ON (o.order_id)
+        o.order_id,
+        o.created_at AS order_created_at,
+        c.created_at AS cart_created_at,
+        EXTRACT(EPOCH FROM (o.created_at - c.created_at)) AS diff_seconds
+      FROM orders o
+      LEFT JOIN carts c ON (
+        c.status = 'ordered'
+        AND c.created_at < o.created_at
+        AND (
+          (o.user_id IS NOT NULL AND c.user_id = o.user_id)
+          OR (o.guest_id IS NOT NULL AND c.guest_id = o.guest_id)
+        )
+      )
+      WHERE o.status IN ('paid', 'shipped', 'delivered')
+        ${dateFilter}
+      ORDER BY o.order_id, c.created_at DESC
+    )
+    SELECT 
+      COUNT(*) FILTER (WHERE diff_seconds IS NOT NULL AND diff_seconds > 0 AND diff_seconds < 2592000) AS matches_count,
+      AVG(diff_seconds) FILTER (WHERE diff_seconds IS NOT NULL AND diff_seconds > 0 AND diff_seconds < 2592000) AS avg_seconds
+    FROM order_cart_pairs;
+  `;
 
-  let totalTimeMs = 0;
-  let matchesCount = 0;
+  const result = await prisma.$queryRawUnsafe(query, ...params);
 
-  // For each order, find the corresponding cart
-  // Heuristic: Find the most recent 'ordered' cart for this user/guest created BEFORE the order
-  for (const order of orders) {
-    const cartWhere = {
-      status: 'ordered',
-      created_at: {
-        lt: order.created_at,
-      },
-    };
-
-    if (order.user_id) {
-      cartWhere.user_id = order.user_id;
-    } else if (order.guest_id) {
-      cartWhere.guest_id = order.guest_id;
-    } else {
-      continue;
-    }
-
-    const cart = await prisma.cart.findFirst({
-      where: cartWhere,
-      orderBy: {
-        created_at: 'desc',
-      },
-      select: {
-        created_at: true,
-      },
-    });
-
-    if (cart) {
-      const diff = new Date(order.created_at) - new Date(cart.created_at);
-      // Filter out unreasonable times (e.g., > 30 days) to avoid bad data skewing results
-      if (diff > 0 && diff < 30 * 24 * 60 * 60 * 1000) {
-        totalTimeMs += diff;
-        matchesCount++;
-      }
-    }
+  if (
+    !result ||
+    result.length === 0 ||
+    !result[0].matches_count ||
+    result[0].matches_count === '0'
+  ) {
+    return 0;
   }
 
-  if (matchesCount === 0) return 0;
+  const avgSeconds = parseFloat(result[0].avg_seconds);
+  const averageMinutes = avgSeconds / 60;
 
-  const averageMinutes = totalTimeMs / matchesCount / 60000;
   return Number(averageMinutes.toFixed(1));
 };
 

@@ -150,57 +150,45 @@ export const getActiveReservations = async () => {
  * @returns {Promise<Object>} Cleanup result
  */
 export const cleanupExpiredReservations = async () => {
-  const expiredReservations = await prisma.stockReservation.findMany({
-    where: {
-      expires_at: {
-        lte: new Date(),
-      },
-    },
-  });
+  const now = new Date();
 
-  if (expiredReservations.length === 0) {
-    return {
-      message: 'No expired reservations to clean up',
-      cleaned_reservations: 0,
-    };
-  }
-
-  // Group by product to create movements
-  const productMovements = {};
-
-  expiredReservations.forEach((reservation) => {
-    if (!productMovements[reservation.product_id]) {
-      productMovements[reservation.product_id] = 0;
-    }
-    productMovements[reservation.product_id] += reservation.quantity;
-  });
-
-  // Create movements for expired reservations
-  const movementPromises = Object.entries(productMovements).map(
-    ([productId, quantity]) =>
-      prisma.stockMovement.create({
-        data: {
-          product_id: parseInt(productId, 10),
-          type: 'entry', // Return stock to available
-          quantity,
-          reason: 'RESERVATION_EXPIRED',
+  // Use transaction to ensure atomicity and reduce blocking
+  const result = await prisma.$transaction(async (tx) => {
+    // Get expired reservations with minimal data
+    const expiredReservations = await tx.stockReservation.findMany({
+      where: {
+        expires_at: {
+          lte: now,
         },
-      })
-  );
-
-  // Delete expired reservations
-  const deletePromise = prisma.stockReservation.deleteMany({
-    where: {
-      expires_at: {
-        lte: new Date(),
       },
-    },
+      select: {
+        reservation_id: true,
+        product_id: true,
+        quantity: true,
+      },
+    });
+
+    if (expiredReservations.length === 0) {
+      return {
+        message: 'No expired reservations to clean up',
+        cleaned_reservations: 0,
+      };
+    }
+
+    // Delete only the specific reservations we found
+    const deleteResult = await tx.stockReservation.deleteMany({
+      where: {
+        reservation_id: {
+          in: expiredReservations.map((r) => r.reservation_id),
+        },
+      },
+    });
+
+    return {
+      message: 'Cleanup completed successfully',
+      cleaned_reservations: deleteResult.count,
+    };
   });
 
-  await Promise.all([...movementPromises, deletePromise]);
-
-  return {
-    message: 'Cleanup completed successfully',
-    cleaned_reservations: expiredReservations.length,
-  };
+  return result;
 };

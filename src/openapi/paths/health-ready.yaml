@@ -1,0 +1,39 @@
+get:
+  summary: Readiness probe
+  description: |
+    Kubernetes readiness probe endpoint. Returns 200 if the service is ready to accept traffic (database connected).
+    Returns 503 if the service is not ready (database unavailable).
+  operationId: getReadiness
+  tags:
+    - Health
+  responses:
+    '200':
+      description: Service is ready to accept traffic
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: ready
+              timestamp:
+                type: string
+                format: date-time
+                example: '2024-03-30T20:00:00.000Z'
+    '503':
+      description: Service is not ready
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: not ready
+              timestamp:
+                type: string
+                format: date-time
+              reason:
+                type: string
+                example: Database not available

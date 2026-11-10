@@ -10,17 +10,17 @@ import {
   forgotPassword,
   resetPassword,
 } from '../controllers/auth.controller.js';
-import rateLimit from 'express-rate-limit'; // Import rateLimit
 import { authenticateToken } from '../middlewares/auth.middleware.js';
 import { validateOptionalGuestId } from '../middlewares/guest.middleware.js';
+import { authLimiter, passwordResetLimiter } from '../config/rateLimiters.js';
 
 const router = express.Router();
 
 // POST /auth/login - Login with email and password
-router.post('/login', validateOptionalGuestId, login);
+router.post('/login', authLimiter, validateOptionalGuestId, login);
 
 // POST /auth/google - Login/registration with Google OAuth
-router.post('/google', validateOptionalGuestId, googleAuth);
+router.post('/google', authLimiter, validateOptionalGuestId, googleAuth);
 
 // POST /auth/refresh - Refresh access token
 router.post('/refresh', refreshToken);
@@ -38,18 +38,9 @@ router.put('/change-password', authenticateToken, changePassword);
 router.post('/presigned-url', authenticateToken, getPresignedUrl);
 
 // POST /auth/forgot-password - Request password reset
-router.post('/forgot-password', rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 requests per windowMs
-  message: {
-      error: {
-        message: 'Too many password reset requests, please try again after 15 minutes',
-        status: 429
-      }
-    }
-}), forgotPassword); // TODO: Add Rate limiting middleware here if not using inline
+router.post('/forgot-password', passwordResetLimiter, forgotPassword);
 
 // POST /auth/reset-password - Reset password
-router.post('/reset-password', resetPassword);
+router.post('/reset-password', passwordResetLimiter, resetPassword);
 
 export default router;

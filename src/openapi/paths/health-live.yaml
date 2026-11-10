@@ -1,0 +1,23 @@
+get:
+  summary: Liveness probe
+  description: |
+    Kubernetes liveness probe endpoint. Returns 200 if the service process is alive and responding.
+    This endpoint does not check external dependencies, only that the process is running.
+  operationId: getLiveness
+  tags:
+    - Health
+  responses:
+    '200':
+      description: Service is alive
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: alive
+              timestamp:
+                type: string
+                format: date-time
+                example: '2024-03-30T20:00:00.000Z'

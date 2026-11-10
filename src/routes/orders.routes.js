@@ -11,12 +11,13 @@ import {
   authenticateToken,
   authorizeRoles,
 } from '../middlewares/auth.middleware.js';
+import { createOrderLimiter } from '../config/rateLimiters.js';
 
 const router = express.Router();
 
 // Authenticated user routes
 // POST /orders - Create order from cart
-router.post('/', authenticateToken, createOrder);
+router.post('/', authenticateToken, createOrderLimiter, createOrder);
 
 // GET /orders - List user orders (or all if admin)
 router.get('/', authenticateToken, getOrders);
@@ -34,7 +35,7 @@ router.patch(
 
 // Guest routes (no authentication required)
 // POST /orders/guest - Create guest order from cart
-router.post('/guest', createGuestOrder);
+router.post('/guest', createOrderLimiter, createGuestOrder);
 
 // GET /orders/guest/:order_token - Get guest order by token
 router.get('/guest/:order_token', getGuestOrder);

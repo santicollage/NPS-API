@@ -13,11 +13,12 @@ import {
   authorizeRoles,
   optionalAuthenticateToken,
 } from '../middlewares/auth.middleware.js';
+import cacheMiddleware from '../middlewares/cache.middleware.js';
 
 const router = express.Router();
 
-// GET /products - Get all products with optional filtering (public)
-router.get('/', optionalAuthenticateToken, getProducts);
+// GET /products - Get all products with optional filtering (public, cached 3 min)
+router.get('/', optionalAuthenticateToken, cacheMiddleware(180), getProducts);
 
 // POST /products - Create new product (admin only)
 router.post(
@@ -43,8 +44,8 @@ router.patch(
   bulkUpdateVisibility
 );
 
-// GET /products/:product_id - Get product details (public)
-router.get('/:product_id', getProduct);
+// GET /products/:product_id - Get product details (public, cached 3 min)
+router.get('/:product_id', cacheMiddleware(180), getProduct);
 
 // PATCH /products/:product_id - Update product (admin only)
 router.patch(

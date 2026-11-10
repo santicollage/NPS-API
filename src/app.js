@@ -10,6 +10,9 @@ import compression from 'compression';
 import errorHandler from './middlewares/errorHandler.js';
 import setupSecurity from './config/security.js';
 import apiRoutes from './routes/index.js';
+import healthRoutes from './routes/health.routes.js';
+import logger from './utils/logger.js';
+import shutdownState from './config/shutdown.js';
 
 const app = express();
 
@@ -17,10 +20,22 @@ setupSecurity(app);
 
 app.use(compression());
 
-app
-  .route('/health')
-  .get((req, res) => res.status(200).json({ status: 'ok' }))
-  .head((req, res) => res.status(200).end());
+// Track active requests & reject new ones during shutdown
+app.use((req, res, next) => {
+  if (shutdownState.isShuttingDown) {
+    return res.status(503).json({ error: 'Server shutting down' });
+  }
+
+  shutdownState.activeRequests++;
+
+  res.on('finish', () => {
+    shutdownState.activeRequests--;
+  });
+
+  next();
+});
+
+app.use('/health', healthRoutes);
 
 // Routes and error handling are left inside the async to allow the documentation reading and validation to be loaded correctly
 (async () => {
@@ -33,12 +48,14 @@ app
       throw new Error(`The OpenAPI file was not found in: ${openApiPath}`);
     }
 
-    console.log('📘 Loading OpenAPI specification from:', openApiPath);
+    logger.info('📘 Loading OpenAPI specification from:', {
+      path: openApiPath,
+    });
 
     // Resolve references ($ref:) correctly from openapi.yaml
     const resolvedSpec = await RefParser.dereference(openApiPath);
 
-    console.log('✅ OpenAPI specification loaded and resolved successfully.');
+    logger.info('✅ OpenAPI specification loaded and resolved successfully.');
 
     // Build Swagger UI with the documentation sorted
     app.use('/docs', swaggerUi.serve, swaggerUi.setup(resolvedSpec));
@@ -62,7 +79,10 @@ app
 
     app.use(errorHandler);
   } catch (error) {
-    console.error('❌ Error resolving OpenAPI references:', error.message);
+    logger.error('❌ Error resolving OpenAPI references:', {
+      error: error.message,
+      stack: error.stack,
+    });
   }
 })();
 

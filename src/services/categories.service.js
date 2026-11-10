@@ -1,22 +1,37 @@
 import prisma from '../config/db.js';
+import * as cache from '../config/cache.js';
+
+const CACHE_KEYS = {
+  ALL_CATEGORIES: 'categories:all',
+  CATEGORY_BY_ID: (id) => `category:${id}`,
+};
+
+const CACHE_TTL = {
+  CATEGORIES: 600, // 10 minutes
+};
 
 /**
  * Get all categories
  * @returns {Promise<Array>} Array of categories
  */
 export const getAllCategories = async () => {
-  const categories = await prisma.category.findMany({
-    select: {
-      category_id: true,
-      name: true,
-      description: true,
+  return cache.getOrSet(
+    CACHE_KEYS.ALL_CATEGORIES,
+    async () => {
+      const categories = await prisma.category.findMany({
+        select: {
+          category_id: true,
+          name: true,
+          description: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
+      return categories;
     },
-    orderBy: {
-      name: 'asc',
-    },
-  });
-
-  return categories;
+    CACHE_TTL.CATEGORIES
+  );
 };
 
 /**
@@ -50,6 +65,9 @@ export const createCategory = async (categoryData) => {
     },
   });
 
+  // Invalidate cache
+  cache.del(CACHE_KEYS.ALL_CATEGORIES);
+
   return category;
 };
 
@@ -59,20 +77,26 @@ export const createCategory = async (categoryData) => {
  * @returns {Promise<Object>} Category object
  */
 export const getCategoryById = async (categoryId) => {
-  const category = await prisma.category.findUnique({
-    where: { category_id: categoryId },
-    select: {
-      category_id: true,
-      name: true,
-      description: true,
+  return cache.getOrSet(
+    CACHE_KEYS.CATEGORY_BY_ID(categoryId),
+    async () => {
+      const category = await prisma.category.findUnique({
+        where: { category_id: categoryId },
+        select: {
+          category_id: true,
+          name: true,
+          description: true,
+        },
+      });
+
+      if (!category) {
+        throw new Error('Category not found');
+      }
+
+      return category;
     },
-  });
-
-  if (!category) {
-    throw new Error('Category not found');
-  }
-
-  return category;
+    CACHE_TTL.CATEGORIES
+  );
 };
 
 /**
@@ -110,6 +134,12 @@ export const updateCategory = async (categoryId, updateData) => {
     },
   });
 
+  // Invalidate cache
+  cache.delMultiple([
+    CACHE_KEYS.ALL_CATEGORIES,
+    CACHE_KEYS.CATEGORY_BY_ID(categoryId),
+  ]);
+
   return category;
 };
 
@@ -137,4 +167,10 @@ export const deleteCategory = async (categoryId) => {
   await prisma.category.delete({
     where: { category_id: categoryId },
   });
+
+  // Invalidate cache
+  cache.delMultiple([
+    CACHE_KEYS.ALL_CATEGORIES,
+    CACHE_KEYS.CATEGORY_BY_ID(categoryId),
+  ]);
 };

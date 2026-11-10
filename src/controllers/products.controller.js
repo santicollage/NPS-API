@@ -107,6 +107,9 @@ export const getProduct = async (req, res, next) => {
     const productId = parseInt(product_id, 10);
 
     const product = await getProductById(productId);
+    if (!product) {
+      throw new Error('Product not found');
+    }
     res.status(200).json(product);
   } catch (error) {
     if (error.message === 'Product not found') {

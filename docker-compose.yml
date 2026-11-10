@@ -33,9 +33,8 @@ services:
       - postgres
     networks:
       - nps-network
-    volumes:
-      - .:/app
-      - /app/node_modules
+    # Volumes removed: code lives inside the image.
+    # For local dev, create a docker-compose.override.yml with bind-mount.
 
   pgadmin:
     image: dpage/pgadmin4

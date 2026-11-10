@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { ENV } from './env.js';
+import logger from '../utils/logger.js';
 
 export default function setupSecurity(app) {
   const allowedOrigins = ENV.CORS_ORIGINS;
@@ -45,11 +46,13 @@ export default function setupSecurity(app) {
 
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 min
-    max: 1000, // limit of 1000 requests per windowMs
+    max: 100, // limit of 100 requests per windowMs
     message: {
       status: 429,
       error: 'Too many requests, please try again later.',
     },
+    standardHeaders: true,
+    legacyHeaders: false,
   });
   app.use(limiter);
 
@@ -58,5 +61,5 @@ export default function setupSecurity(app) {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  console.log('🔒 Security middlewares loaded correctly.');
+  logger.info('🔒 Security middlewares loaded correctly.');
 }
