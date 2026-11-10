@@ -2,7 +2,9 @@
 
 API REST del e-commerce de **NPS Diesel S.A.S.**, empresa colombiana de repuestos para vehículos de carga. La diseñé y construí como único desarrollador backend, junto con el frontend ([NPS-WEB](https://github.com/santicollage/NPS-WEB)).
 
-**Estado del proyecto:** desarrollo terminado entre diciembre de 2025 y marzo de 2026. La integración con PayU se probó en **sandbox**: el cliente no llegó a crear su cuenta de PayU, así que los pagos nunca operaron en producción. Hoy la API no está desplegada.
+**Estado del proyecto:** desarrollo terminado entre diciembre de 2025 y marzo de 2026. La integración con PayU se probó en **sandbox**: el cliente no llegó a crear su cuenta de PayU, así que los pagos nunca operaron en producción.
+
+**Documentación en vivo:** [api.npsdieselsas.com/docs](https://api.npsdieselsas.com/docs). Está en el plan gratuito de Render: si lleva un rato sin uso, la primera petición puede tardar cerca de un minuto en responder.
 
 ## Qué hace
 
