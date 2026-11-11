@@ -4,24 +4,21 @@ info:
   description:
     API RESTful para la plataforma de comercio electrónico de **NPS DIESEL S.A.S**.
     Permite la gestión de usuarios, productos, pedidos, pagos e inventario,
-    con autenticación JWT y conexión a Wompi. Soporta tanto usuarios registrados
+    con autenticación JWT y pagos con PayU Latam (probados en sandbox). Soporta tanto usuarios registrados
     como invitados (guest checkout). Las reservas de stock se crean al confirmar
     órdenes y se confirman o liberan según el resultado del pago.
   version: 1.0.0
   contact:
-    name: Equipo de Desarrollo NPS DIESEL
+    name: Santiago Urrego
     email: santiagourregolaya@gmail.com
-    url: https://npsdiesel.com
+    url: https://www.santicollage.com
 
 servers:
+  - url: https://api.npsdieselsas.com/api/v1
+    description: Producción (Render, plan gratuito; la primera petición puede tardar ~1 min)
+
   - url: http://localhost:3000/api/v1
     description: Servidor local de desarrollo
-
-  - url: https://staging.npsdiesel.com/api/v1
-    description: Servidor de staging (preproducción)
-
-  - url: https://api.npsdiesel.com/v1
-    description: Servidor de producción
 
 paths:
   /ping:

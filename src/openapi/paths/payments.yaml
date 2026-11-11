@@ -1,7 +1,7 @@
 /create:
   post:
     summary: Create payment transaction
-    description: Create transaction in Wompi, register in payments table with pending status.
+    description: Create transaction in PayU, register in payments table with pending status.
     tags:
       - Payments
     security:
@@ -39,7 +39,7 @@
 /webhook:
   post:
     summary: Payment webhook
-    description: Endpoint to receive payment confirmation from Wompi (updates payments.status and orders.status).
+    description: Endpoint to receive payment confirmation from PayU (updates payments.status and orders.status).
     tags:
       - Payments
     requestBody:
